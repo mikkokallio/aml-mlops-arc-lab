@@ -41,3 +41,21 @@ error status, proves reachability. Network errors are explicitly logged.
 Probe failure never prevents model loading and never installs anything.
 A blocked result describes this request, not the cause of the network failure.
 Unset the flag for no package-index requests.
+
+## Disposable portable REST checks
+
+The VM bootstrap `start-vm.sh` installs Docker, obtains an in-memory ACR login
+with the VM's `AcrPull` identity, pulls an immutable image, logs out, and starts
+version 2. Run it only on a fresh disposable VM, with `ACR_SERVER`, `IMAGE` and
+`IDENTITY_CLIENT_ID` set. Its loopback check is readiness, not acceptance.
+
+From a separate private client, run `python -m scripts.check_portable_serving`
+with `--target vm|aci|aca`, `--url`, `--request`, `--reference`,
+`--model-manifest-sha256` and `--output`. Inputs are the original 100-row request
+and predictions saved during the registered-model image build. All resolved
+addresses must be private and non-loopback, and curl is pinned to a verified
+address. For ACA's internal ingress use its real HTTPS hostname plus
+`--resolve-ip <environment-private-ip>`; this preserves TLS verification without
+creating a permanent private DNS zone. The checker verifies actual readiness
+identity and 100 REST predictions, not just provisioning state. These portable
+checks do not establish AML-managed deployment acceptance.

@@ -231,6 +231,67 @@ successful production training. All times below are UTC on 23 November 2026.
   acceptance is not claimed. These two measured delays are not a delivery SLA
   or inference-monitoring acceptance.
 
+## Disposable serving-target matrix
+
+The operator approved sequential tests of five targets with a EUR30 incremental
+working ceiling: AML managed online (primary lifecycle), native AML on AKS, a VM
+container, Azure Container Instances and Azure Container Apps. The last three
+are portable model-serving tests, not AML-managed deployment acceptance.
+The existing Arc cluster is not changed by this matrix.
+
+### Primary: AML managed online
+
+Real cloud checks passed on private endpoint `amlarclab-managed-1123`:
+
+- Registered model 1 / blue and model 2 / green each returned 100 REST
+  predictions identical to their local registered-model references
+  (maximum absolute error 0, tolerances rtol/atol 1e-5).
+- Traffic changed blue 100% -> green 100% -> blue 100%; directed and routed
+  REST responses were checked at each applicable stage. This proves actual
+  model-version transition and rollback, not just ARM traffic configuration.
+- Primary-key rotation was verified by real new-key scoring, stale-primary
+  HTTP401, unchanged-secondary scoring and three successful secondary probes.
+  Observed data-plane propagation was 10.350 seconds. The initial SDK async
+  polling URL returned 404; the verified test uses the documented 2024-10-01
+  regeneration API and actual bounded key/authentication readback.
+- Green startup logs prove the model was loaded from the AML mount, with file
+  hashes matching the registered-model build manifest, and both actual PyPI
+  and pythonhosted probes blocked. The immutable image installs dependencies
+  at build time, not startup. Inbound public access and deployment public egress
+  were Disabled; existing private storage/firewall guardrails were not relaxed.
+- A deliberately invalid feature request produced HTTP424 / model HTTP400,
+  appeared in actual traffic logs with its exact client request ID, and
+  produced a matching Sev2 Fired alert at 20:25:05 UTC. The request event was
+  20:22:19 UTC. Valid scoring immediately afterward still matched the reference.
+  Telemetry/controlled-failure alerting is proven; this is not drift monitoring,
+  production alert-policy design or external notification delivery.
+- A subsequent comparison used the actual 100%-traffic blue REST champion
+  across all 9,489 rows of the registered data2 campaign-grouped holdout.
+  Candidate model2 MAE was 0.4167589735 versus the live champion's
+  0.4229801117. The unchanged policy returned ELIGIBLE; candidate slice MAEs
+  were 0.4202226723/0.4122043658. Actual data bytes matched the registered
+  `71ec5e60...` snapshot hash. Endpoint traffic/model identity were checked
+  before and after the comparison.
+
+Serving image source was committed separately from model-training source f563:
+blue image source 9df04bce5fe6ad3eee2eaf78b2493da53ded3429;
+green image source 0cfa2c0eab0c716d8ca5922294abdbbf2b187f3b.
+Both images and the shared Python base were pinned by digest. Custom portable
+serving deliberately replaces MLflow's runtime dependency-installing no-code
+container; the registered models and quality policy were not changed.
+
+Execution used P-DS from a new disposable private VM, orchestrated by the
+authorized operator. This is **not GitHub model-release acceptance**, fresh-code
+training upload from a hosted runner, independent approval or Arc acceptance.
+The temporary build identity's measured artifact-container and image-push
+permissions were revoked after use. The linked inference-UAMI assignment
+permission and registry private-link SKU prerequisite are explicitly audited.
+Cleanup must be verified before progressing to the next compute target.
+
+Remaining smoke targets: native AKS, separate VM container, ACI and Container
+Apps are **NOT YET TESTED**. Their future results must not be inferred from the
+working managed endpoint or portable API's local tests.
+
 ## Arc workaround experiments
 
 - Original-cluster Flux installation returned ARM Succeeded; Helm release is
