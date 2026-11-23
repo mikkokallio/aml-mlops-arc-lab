@@ -231,6 +231,211 @@ successful production training. All times below are UTC on 23 November 2026.
   acceptance is not claimed. These two measured delays are not a delivery SLA
   or inference-monitoring acceptance.
 
+## Disposable serving-target matrix
+
+The operator approved sequential tests of five targets with a EUR30 incremental
+working ceiling: AML managed online (primary lifecycle), native AML on AKS, a VM
+container, Azure Container Instances and Azure Container Apps. The last three
+are portable model-serving tests, not AML-managed deployment acceptance.
+The existing Arc cluster is not changed by this matrix.
+
+### Primary: AML managed online
+
+Real cloud checks passed on private endpoint `amlarclab-managed-1123`:
+
+- Registered model 1 / blue and model 2 / green each returned 100 REST
+  predictions identical to their local registered-model references
+  (maximum absolute error 0, tolerances rtol/atol 1e-5).
+- Traffic changed blue 100% -> green 100% -> blue 100%; directed and routed
+  REST responses were checked at each applicable stage. This proves actual
+  model-version transition and rollback, not just ARM traffic configuration.
+- Primary-key rotation was verified by real new-key scoring, stale-primary
+  HTTP401, unchanged-secondary scoring and three successful secondary probes.
+  Observed data-plane propagation was 10.350 seconds. The initial SDK async
+  polling URL returned 404; the verified test uses the documented 2024-10-01
+  regeneration API and actual bounded key/authentication readback.
+- Green startup logs prove the model was loaded from the AML mount, with file
+  hashes matching the registered-model build manifest, and both actual PyPI
+  and pythonhosted probes blocked. The immutable image installs dependencies
+  at build time, not startup. Inbound public access and deployment public egress
+  were Disabled; existing private storage/firewall guardrails were not relaxed.
+- A deliberately invalid feature request produced HTTP424 / model HTTP400,
+  appeared in actual traffic logs with its exact client request ID, and
+  produced a matching Sev2 Fired alert at 20:25:05 UTC. The request event was
+  20:22:19 UTC. Valid scoring immediately afterward still matched the reference.
+  Telemetry/controlled-failure alerting is proven; this is not drift monitoring,
+  production alert-policy design or external notification delivery.
+- A subsequent comparison used the actual 100%-traffic blue REST champion
+  across all 9,489 rows of the registered data2 campaign-grouped holdout.
+  Candidate model2 MAE was 0.4167589735 versus the live champion's
+  0.4229801117. The unchanged policy returned ELIGIBLE; candidate slice MAEs
+  were 0.4202226723/0.4122043658. Actual data bytes matched the registered
+  `71ec5e60...` snapshot hash. Endpoint traffic/model identity were checked
+  before and after the comparison.
+
+Serving image source was committed separately from model-training source f563:
+blue image source 9df04bce5fe6ad3eee2eaf78b2493da53ded3429;
+green image source 0cfa2c0eab0c716d8ca5922294abdbbf2b187f3b.
+Both images and the shared Python base were pinned by digest. Custom portable
+serving deliberately replaces MLflow's runtime dependency-installing no-code
+container; the registered models and quality policy were not changed.
+
+Execution used P-DS from a new disposable private VM, orchestrated by the
+authorized operator. This is **not GitHub model-release acceptance**, fresh-code
+training upload from a hosted runner, independent approval or Arc acceptance.
+The temporary build identity's measured artifact-container and image-push
+permissions were revoked after use. The linked inference-UAMI assignment
+permission and registry private-link SKU prerequisite are explicitly audited.
+The managed endpoint (including both deployments) and temporary inference alert
+were deleted and independently read back HTTP404 before AKS was created.
+Registry private connections were independently empty, then the original Basic
+SKU/public-enabled/admin-disabled baseline was restored and read back.
+
+### Native AML on AKS: REST passed
+
+A disposable private AKS 1.35.9 cluster used one Standard_D4s_v5 node, the Free
+control-plane tier and an isolated subnet with the existing NAT gateway. Its
+node was Ready with a private address and no external IP. Local accounts remain
+enabled as required by the documented AML extension prerequisite; this is not
+a production AKS-hardening acceptance.
+
+The current AML extension **1.1.115 installed successfully** without identity
+overrides, downgrades, pod patches or Arc attachment. Actual identity/inference
+controller pods were Running, the inference router was private NodePort, and
+the existing `lab-cpu` InstanceType was installed. AML Kubernetes compute
+`aks-smoke` attached successfully using the existing read-only inference UAMI
+and a separate inference namespace.
+
+Endpoint `amlarclab-aks-1123`, deployment blue, used registered synthetic model
+2 and the same immutable custom serving environment as the managed green.
+From the separate private worker, P-DS retrieved endpoint metadata/keys and
+issued an actual directed REST request through the AML router: **HTTP200,
+100 finite predictions, max absolute error 0**, rtol/atol 0.00001 against the
+original registered-model build reference.
+
+This proves native AML-on-AKS deployment and real REST scoring, not just image
+portability. Infrastructure, attachment and deployment used the authorized
+bootstrap operator; restricted-persona deployment is not implicitly passed.
+HTTP was confined to VNet-only NodePort for this disposable lab: production TLS,
+AKS promotion/rollback and GitHub release automation are not tested.
+The endpoint and compute attachment were deleted/detached and read back absent.
+The cluster, generated node RG, owned control identity, exact subnet network
+role and isolated subnet were all verified absent before the next VM target
+was started. The temporary P-DS inference-UAMI Operator assignment was deleted
+and read back HTTP404; its exact original two role/scope pairs were independently
+verified restored. The actual retail Linux node rate recorded was
+EUR0.1831/hour; that is not a measured invoice.
+
+### Private VM container: REST passed
+
+A separate disposable Standard_D2s_v3 Ubuntu VM was created in an isolated
+subnet, with a private address and no public-IP association. Its existing
+read-only inference UAMI successfully obtained an ACR login and pulled the
+same immutable green image, digest
+`69de0659299816d9ede8ad3a38a44982509ae71701932ac6f18687f3e5a0e40a`.
+Docker 29.1.3 started its nonroot model2 service; registry login was removed
+after the pull.
+
+The separate worker, not VM loopback, issued real health and scoring requests.
+Health reported bundled model2 and the exact seven-file registered-model
+manifest `f9f53c9635e7527c74443e6818ef61b5f370379a0a27344b6f44f372150bc5b0`.
+The actual REST result was **HTTP200, 100 finite predictions, max absolute
+error 0**, rtol/atol 0.00001. Optional source/model labels remained
+unknown/unspecified because they were not set on this portable container;
+identity comes from the actual image pull digest and independent model hashes,
+not those labels.
+
+The initial standalone bootstrap's exit0 skipped the outer Run Command
+completion marker despite successful image pull and actual loopback-ready
+health. The private invocation was corrected to execute that script in a child
+shell; the existing container was not recreated or falsely marked passed.
+The separate successful REST/model-identity check supplied acceptance.
+
+This is private HTTP portable serving, without server authentication, **not
+AML-managed deployment, production transport/security or release acceptance**.
+The VM, schedule, automatically deleted NIC/disk and isolated subnet were all
+read back absent before ACI was started.
+
+### Private Azure Container Instances: REST passed
+
+A disposable private Linux container group used one CPU, 2 GB memory, its own
+delegated subnet and the existing NAT gateway. The existing read-only inference
+UAMI pulled the same immutable image; no registry password or new role grant was
+needed. The separate worker obtained real health and scoring output from the
+group's private address: the exact model2 seven-file manifest, **100 finite REST
+predictions, max absolute error 0**, rtol/atol 0.00001.
+
+The first subnet what-if hit a local Azure authentication network timeout
+before creating resources. One identical retry succeeded without login,
+broker/configuration changes or a network-policy workaround. That is not a
+failed ACI inference acceptance. The container group and delegated subnet were
+subsequently deleted and read back absent before Container Apps was started.
+This is unauthenticated private HTTP portable serving, not AML management or
+production security/release acceptance.
+
+### Internal Azure Container Apps: HTTPS REST passed
+
+A disposable internal VNet environment used the Consumption workload profile
+and a single app replica requesting one CPU and 2 GiB. The same existing
+read-only inference UAMI pulled the same immutable image. Actual environment
+readback confirmed internal=true, the isolated delegated subnet, a private
+static address and the generated infrastructure resource group.
+
+The separate worker contacted the app's actual HTTPS hostname using curl's
+private-address `--resolve` option, preserving SNI and certificate/hostname
+verification without a permanent DNS-zone change. Both initial and final
+committed-checker runs returned the exact bundled model2 manifest and **100
+finite predictions, max absolute error 0**, rtol/atol 0.00001. The final checker
+also disables implicit curl configuration, so a client's default insecure or
+redirect options cannot silently alter this test.
+
+The app's external ingress means reachable outside the app/environment within
+the VNet, not public Internet ingress: the environment itself is internal.
+This is private HTTPS portable serving without app authentication, not AML
+deployment management, production authorization or release-workflow acceptance.
+The app and generated infrastructure resource group are GET404. The environment
+record remains ScheduledForDelete after the first bounded 20-minute cleanup
+wait; a second exact DELETE returned 202 with its operation still pending.
+Actual subnet readback showed no service-association links or IP configurations,
+so only the empty owned ACA subnet was deleted and GET404 verified. The shared
+original VNet was preserved; advice to delete an entire associated VNet was not
+followed. The remaining control-plane record must not be called fully cleaned
+until its own GET404 is observed.
+
+### Matrix boundaries and retained replay assets
+
+All five selected targets passed their specified real-serving tests. Only the
+private managed-online primary received the full serving lifecycle; native AKS
+received AML attachment/deployment/REST tests; VM/ACI/ACA received portable REST
+tests. None substitutes for the still-blocked original Arc path or deferred
+Fabric integration, fresh-checkout hosted-runner training packaging, GitHub
+model release, independent approval, drift monitoring or external notification
+delivery.
+
+The two versioned serving environments and their immutable registry images are
+retained for replay, not as active compute. The restored Basic registry reports
+2,128,945,783 bytes used, below its 10,737,418,240-byte included storage allowance;
+there is no new registry SKU or storage-overage provision for those artifacts.
+The original registered training models/data/environments are unchanged.
+Exact original request/reference fixture bytes were exported privately and all
+four SHA256 hashes independently verified before private-worker removal.
+
+The private worker, its shutdown schedule, NIC and OS disk are all GET404.
+Original VM readback is deallocated and its original enabled 1900 shutdown
+schedule is preserved. Independent final role queries match the original two
+P-DS role/scope pairs and original two read-only inference-UAMI pairs. Registry
+readback is Basic/publicEnabled/adminDisabled with no private connections;
+storage remains publicDisabled/sharedKeyDisabled/defaultDeny with its approved
+private connections.
+
+For scale, a deliberately rounded-up compute estimate using observed provision
+windows and public Sweden Central EUR rates is about EUR0.89: four worker
+D2s_v3 hours, one smoke-VM D2s_v3 hour, two managed DS2_v2 deployment-hours and
+one AKS D4s_v5 hour. This excludes short ACI/ACA usage, disks, temporary registry
+Premium/private-link charges, logs and networking. It is neither a measured
+invoice nor proof of the total EUR30 working ceiling; no hard billing cap was
+promised. No disposable serving compute remains running.
+
 ## Arc workaround experiments
 
 - Original-cluster Flux installation returned ARM Succeeded; Helm release is

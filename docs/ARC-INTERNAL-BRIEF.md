@@ -15,7 +15,7 @@ No internal material needs to be copied into the public repository.
   1.39.3; each deployment reports one ready replica.
 - AML workspace training, MLflow metrics/artifacts and workspace model
   registration succeed through private storage/Key Vault connectivity.
-- AML Kubernetes extension installation is blocked. Therefore Kubernetes compute
+- AML Arc Kubernetes extension installation is blocked. Therefore Arc compute
   attachment, AML model deployment and endpoint scoring have not succeeded.
 
 ## Extension and failure
@@ -100,6 +100,27 @@ The agreed practical experiments are exhausted. Do not prescribe another
 unverified identity override, agent downgrade or managed-component patch.
 The original target is retained for a supported mitigation and actual retest.
 
+## Successful native AKS control
+
+A subsequent disposable **native AKS 1.35.9** cluster in Sweden Central,
+with a managed identity, private API and a single x86-64 node, successfully
+installed the same current AML extension **1.1.115** using the same
+inference-only private NodePort settings. Its actual identity controller,
+identity proxy, gateway and inference-controller pods were Running.
+
+AML Kubernetes compute attachment and deployment of registered synthetic model
+2 with the immutable custom serving environment then succeeded. A separate
+private client using P-DS performed actual directed REST scoring through the
+AML router: HTTP200, 100 predictions, zero maximum absolute reference error,
+rtol/atol 0.00001. No extension downgrade, identity override or pod patch was
+used. Infrastructure/deployment used the authorized bootstrap operator; HTTP
+was VNet-only lab transport, not production TLS acceptance.
+
+This is a useful counterexample to a universal extension-version or AML-serving
+failure, not an Arc fix or proof of the upstream producer's root cause.
+Native AKS acceptance does not satisfy the original Arc target. Exact private
+operation, runtime and REST evidence is retained alongside the Arc evidence.
+
 ## One consolidated support request
 
 **Suggested title:** AML Arc extension rejects upstream UserAssigned identity
@@ -119,6 +140,8 @@ Private managed AML training and synthetic cloud pipelines succeed independently
 **Private attachments available:** Original operation/correlation and selected
 rendered-value evidence; A full health/component archive and outcome; B support
 archive and outcome; version/region matrix and verified cleanup records.
+The native AKS control's successful extension, attachment, deployment and real
+REST comparison evidence is also available privately.
 Raw evidence must use an approved private support channel, not this public repo.
 
 **Requested resolution:** Identify the upstream identity producer and provide

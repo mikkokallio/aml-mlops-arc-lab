@@ -94,6 +94,47 @@ private action log:
   The unchanged f563 evaluator finishes metrics evaluation
   before raising the quality decision: FINISHED evaluation metadata and a
   Failed enclosing AML command are distinct, valid outcomes.
+- Disposable managed serving: the private image-builder's actual registered
+  model download returned AuthorizationPermissionMismatch. P-DS's existing
+  workspaceblobstore grant did not cover workspaceartifactstore (container
+  azureml). A temporary Storage Blob Data Reader grant on that exact container
+  resolved the read after propagation; direct keyless/private Blob access was
+  independently verified. Temporary AcrPush on only the lab registry permitted
+  publishing immutable images. Both assignments were deleted after use and
+  P-DS's original two assignments independently read back.
+  Datastore names are aliases: workspaceblobstore's physical container has an
+  AML-generated name. Resolve actual container scopes and compare recorded
+  role/scope pairs rather than assuming a container is named after its datastore.
+- Managed serving's documented per-deployment secure egress needs private link
+  to the workspace-associated ACR. Its Basic SKU was temporarily upgraded to
+  Premium; public-access and admin-authentication settings were not relaxed.
+  The original SKU is recorded for restoration after temporary private links
+  are removed. This legacy per-deployment approach avoids changing the working
+  workspace's network-isolation architecture for a disposable test.
+- Actual P-DS traffic update passed onlineEndpoints/write but failed linked
+  userAssignedIdentities/assign/action. A temporary Managed Identity Operator
+  grant covers only the existing read-only inference UAMI, not its RG; the
+  inference identity's own data roles were not widened. Owner/RBAC
+  administration is required to grant it. AML-RG Contributor alone is
+  insufficient for this cross-RG linked identity assignment.
+- SDK key-regeneration async polling returned 404. The documented 2024-10-01
+  REST operation plus bounded actual key readback and real scoring verifies the
+  requirement without upgrading shared tools or treating HTTP202 as success.
+  A subsequent actual probe exposed data-plane propagation: new-key scoring
+  initially returned 401 after ARM key readback changed. The verified test waits
+  for new-key success and stale-key 401, checking unchanged-secondary scoring
+  while waiting; observed convergence was 10.350 seconds, not an SLA.
+- Native AKS control experiment: the same current AML extension 1.1.115
+  installed successfully on private managed-identity AKS 1.35.9. AML compute
+  attachment, registered-model deployment and actual private 100-row REST
+  scoring passed with zero reference error. No identity overrides, extension
+  downgrades or pod patches were needed. This narrows the original blocker to
+  the measured Arc path; it does not establish its product root cause.
+- The installed `az aks command invoke` prints its command-start/finish line and
+  logs as text even with the default JSON output option. The first parent
+  JSON parse failed after an actual exitcode=0 node/namespace command. Checking
+  the actual command exit-code line avoids misreporting successful cluster work
+  as a cloud failure.
 
 | Persona / component | Actual finding | Minimum action and scope | Status |
 |---|---|---|---|

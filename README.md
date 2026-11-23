@@ -3,8 +3,11 @@
 A public, unbranded example of deploying a tracked tabular regression model
 through Azure Machine Learning to Arc-enabled k3s.
 
-**Current status: implementation in progress. No successful Arc scoring result
-has been recorded yet.**
+**Current status: training and a private AML managed-online serving lifecycle
+have passed within the recorded boundaries. Arc scoring remains blocked;
+Fabric is explicitly deferred. All five alternative-target serving tests passed.
+Temporary serving compute and the private client worker are removed; the
+inactive ACA environment record is still scheduled for deletion.**
 
 ## Current acceptance target
 
@@ -50,10 +53,51 @@ forbidden post-outcome features. This is lab data, not a customer's process mode
 
 The VM shutdown schedule does not stop NAT gateway, private endpoint, registry,
 storage, logging, or other provisioned-service charges. Private connectivity
-adds recurring costs. No measured total or cost ceiling is claimed yet.
+adds recurring costs. No measured total invoice is claimed for the original lab.
 The Fabric resource group is empty; no Fabric capacity has been provisioned.
 Preserve the Arc compute's Azure Relay dependency during pauses; do not let a
 VM janitor delete it.
+
+The separate disposable-serving matrix has a EUR30 incremental working ceiling,
+not an Azure billing cap. Targets are tested sequentially and removed after
+evidence capture; the original Arc infrastructure is preserved.
+
+## Disposable inference alternatives
+
+The primary private **AML managed online endpoint** passed real scoring,
+blue/green promotion and rollback, primary-key rotation with stale-key rejection
+and unchanged-secondary scoring, package-index-denied startup, a real Fired
+inference-failure alert, and a 9,489-row comparison against the live champion.
+Its endpoint and temporary inference alert were then deleted and independently
+verified absent; the registry was restored from temporary Premium to Basic.
+
+Native **AML-on-AKS** also passed extension installation, compute attachment,
+registered-model deployment and actual private REST scoring: 100 predictions
+with zero reference error. This used a private HTTP NodePort for the lab, not
+production TLS or a restricted-persona deployment drill.
+
+The separate **private VM container** also passed real worker-to-VM health,
+exact registered-model hashes and 100 REST predictions with zero reference
+error. It has no public IP; this is portable HTTP serving, not AML management.
+
+**Private ACI** also passed real health/model hashes and 100 REST predictions
+with zero reference error, then its group/subnet were removed.
+
+**Internal Container Apps** also passed real private HTTPS scoring with verified
+TLS, exact model hashes and 100 predictions with zero reference error.
+
+All five selected targets passed their scoped tests.
+Provisioning is not a REST pass. VM/ACI/ACA
+tests establish portable serving only, not AML-managed deployment acceptance.
+The [portable service instructions](scripts/serving/README.md) describe the
+common container and strict 100-row cross-network comparison.
+Disposable templates are under `infra/serving`; always inspect what-if, use
+separate owned subnets, and remove owned targets before proceeding.
+
+These are operator-orchestrated tests, not GitHub model-release acceptance,
+fresh-checkout training-code packaging, independent approval, drift monitoring,
+or external notification delivery. See the [measured evidence](docs/evidence/current-run.md)
+and [permission findings](docs/ROADBLOCKS.md) for precise acceptance boundaries.
 
 ## Local training validation
 
