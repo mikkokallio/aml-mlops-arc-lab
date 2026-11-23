@@ -57,6 +57,7 @@ def test_portable_check_requires_real_health_manifest_and_predictions(
         if command[0] != "curl":
             return real_run(command, **kwargs)
         calls.append(command)
+        assert command[1] == "--disable"
         assert "--insecure" not in command
         if command[-1].endswith("/health"):
             return SimpleNamespace(stdout=json.dumps({

@@ -56,7 +56,7 @@ def main() -> None:
     resolve = check_private_url(args.url, args.resolve_ip)
     base = args.url.rstrip("/")
     command = [
-        "curl", "--silent", "--show-error", "--fail-with-body", "--noproxy", "*",
+        "curl", "--disable", "--silent", "--show-error", "--fail-with-body", "--noproxy", "*",
         "--connect-timeout", "10", "--max-time", "90", *resolve,
     ]
     health = json.loads(

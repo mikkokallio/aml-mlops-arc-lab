@@ -102,6 +102,9 @@ private action log:
   independently verified. Temporary AcrPush on only the lab registry permitted
   publishing immutable images. Both assignments were deleted after use and
   P-DS's original two assignments independently read back.
+  Datastore names are aliases: workspaceblobstore's physical container has an
+  AML-generated name. Resolve actual container scopes and compare recorded
+  role/scope pairs rather than assuming a container is named after its datastore.
 - Managed serving's documented per-deployment secure egress needs private link
   to the workspace-associated ACR. Its Basic SKU was temporarily upgraded to
   Premium; public-access and admin-authentication settings were not relaxed.

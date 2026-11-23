@@ -48,6 +48,8 @@ The VM bootstrap `start-vm.sh` installs Docker, obtains an in-memory ACR login
 with the VM's `AcrPull` identity, pulls an immutable image, logs out, and starts
 version 2. Run it only on a fresh disposable VM, with `ACR_SERVER`, `IMAGE` and
 `IDENTITY_CLIENT_ID` set. Its loopback check is readiness, not acceptance.
+When using the Run Command wrapper, invoke this standalone script in a child
+`bash` process; pasting it inline lets its exit0 skip the wrapper's final marker.
 
 From a separate private client, run `python -m scripts.check_portable_serving`
 with `--target vm|aci|aca`, `--url`, `--request`, `--reference`,

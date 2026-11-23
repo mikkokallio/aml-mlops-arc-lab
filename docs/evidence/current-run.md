@@ -318,12 +318,63 @@ portability. Infrastructure, attachment and deployment used the authorized
 bootstrap operator; restricted-persona deployment is not implicitly passed.
 HTTP was confined to VNet-only NodePort for this disposable lab: production TLS,
 AKS promotion/rollback and GitHub release automation are not tested.
-Cleanup is underway; no next serving target may be created until absence is
-verified. The actual retail Linux node rate recorded was EUR0.1831/hour;
-that is not a measured invoice.
+The endpoint and compute attachment were deleted/detached and read back absent.
+The cluster, generated node RG, owned control identity, exact subnet network
+role and isolated subnet were all verified absent before the next VM target
+was started. The temporary P-DS inference-UAMI Operator assignment was deleted
+and read back HTTP404; its exact original two role/scope pairs were independently
+verified restored. The actual retail Linux node rate recorded was
+EUR0.1831/hour; that is not a measured invoice.
 
-Separate VM container, ACI and Container Apps are **NOT YET TESTED**. Their
-future results must not be inferred from the working AML targets or local tests.
+### Private VM container: REST passed
+
+A separate disposable Standard_D2s_v3 Ubuntu VM was created in an isolated
+subnet, with a private address and no public-IP association. Its existing
+read-only inference UAMI successfully obtained an ACR login and pulled the
+same immutable green image, digest
+`69de0659299816d9ede8ad3a38a44982509ae71701932ac6f18687f3e5a0e40a`.
+Docker 29.1.3 started its nonroot model2 service; registry login was removed
+after the pull.
+
+The separate worker, not VM loopback, issued real health and scoring requests.
+Health reported bundled model2 and the exact seven-file registered-model
+manifest `f9f53c9635e7527c74443e6818ef61b5f370379a0a27344b6f44f372150bc5b0`.
+The actual REST result was **HTTP200, 100 finite predictions, max absolute
+error 0**, rtol/atol 0.00001. Optional source/model labels remained
+unknown/unspecified because they were not set on this portable container;
+identity comes from the actual image pull digest and independent model hashes,
+not those labels.
+
+The initial standalone bootstrap's exit0 skipped the outer Run Command
+completion marker despite successful image pull and actual loopback-ready
+health. The private invocation was corrected to execute that script in a child
+shell; the existing container was not recreated or falsely marked passed.
+The separate successful REST/model-identity check supplied acceptance.
+
+This is private HTTP portable serving, without server authentication, **not
+AML-managed deployment, production transport/security or release acceptance**.
+The VM, schedule, automatically deleted NIC/disk and isolated subnet were all
+read back absent before ACI was started.
+
+### Private Azure Container Instances: REST passed
+
+A disposable private Linux container group used one CPU, 2 GB memory, its own
+delegated subnet and the existing NAT gateway. The existing read-only inference
+UAMI pulled the same immutable image; no registry password or new role grant was
+needed. The separate worker obtained real health and scoring output from the
+group's private address: the exact model2 seven-file manifest, **100 finite REST
+predictions, max absolute error 0**, rtol/atol 0.00001.
+
+The first subnet what-if hit a local Azure authentication network timeout
+before creating resources. One identical retry succeeded without login,
+broker/configuration changes or a network-policy workaround. That is not a
+failed ACI inference acceptance. The container group and delegated subnet were
+subsequently deleted and read back absent before Container Apps was started.
+This is unauthenticated private HTTP portable serving, not AML management or
+production security/release acceptance.
+
+Container Apps is **NOT YET TESTED**. Its result must not be inferred from the
+working targets or local tests.
 
 ## Arc workaround experiments
 

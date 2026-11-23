@@ -74,8 +74,15 @@ registered-model deployment and actual private REST scoring: 100 predictions
 with zero reference error. This used a private HTTP NodePort for the lab, not
 production TLS or a restricted-persona deployment drill.
 
-Next targets, in order, are a private VM container, private ACI and internal
-Container Apps. Provisioning is not a REST pass. VM/ACI/ACA
+The separate **private VM container** also passed real worker-to-VM health,
+exact registered-model hashes and 100 REST predictions with zero reference
+error. It has no public IP; this is portable HTTP serving, not AML management.
+
+**Private ACI** also passed real health/model hashes and 100 REST predictions
+with zero reference error, then its group/subnet were removed.
+
+The last target is internal Container Apps.
+Provisioning is not a REST pass. VM/ACI/ACA
 tests establish portable serving only, not AML-managed deployment acceptance.
 The [portable service instructions](scripts/serving/README.md) describe the
 common container and strict 100-row cross-network comparison.
