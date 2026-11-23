@@ -1,0 +1,21 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: campaign-command-probe
+experiment_name: arc-campaign-probe
+code: ..
+command: >-
+  python src/train.py
+  --output ${{outputs.training_output}}
+  --tracking-uri "$MLFLOW_TRACKING_URI"
+  --experiment arc-campaign-probe
+  --register
+compute: azureml:cpu-training
+environment: azureml:campaign-training:1
+identity:
+  type: managed
+outputs:
+  training_output:
+    type: uri_folder
+    mode: rw_mount
+limits:
+  timeout: 1800

@@ -1,10 +1,15 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Script,
-    [Parameter(Mandatory)][string]$EvidenceName
+    [Parameter(Mandatory)][string]$EvidenceName,
+    [string]$SourceArchive,
+    [ValidatePattern('^[0-9a-f]{40}$')][string]$GitSha
 )
 
 $ErrorActionPreference = 'Stop'
+if ([bool]$SourceArchive -ne [bool]$GitSha) {
+    throw 'SourceArchive and GitSha must be supplied together.'
+}
 $directory = Join-Path $PSScriptRoot '..\.local'
 $identities = (Get-Content (Join-Path $directory 'rg-amlarclab-id.deployment.json') -Raw | ConvertFrom-Json).properties.outputs.identities.value
 $edge = (Get-Content (Join-Path $directory 'rg-amlarclab-edge.deployment.json') -Raw | ConvertFrom-Json).properties.outputs
@@ -28,6 +33,10 @@ $variables = [ordered]@{
     LAB_VAULT_HOST = ($ml.vaultId.value -split '/')[-1] + '.vault.azure.net'
     LAB_COMPARE_CODE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'compare_predictions.py')))
     LAB_SCORE_CODE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'score_private.py')))
+}
+if ($SourceArchive) {
+    $variables.LAB_JOB_SOURCE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $SourceArchive)))
+    $variables.LAB_GIT_SHA = $GitSha
 }
 $prefix = ($variables.GetEnumerator() | ForEach-Object { "export $($_.Key)='$($_.Value)'" }) -join "`n"
 $generated = Join-Path $directory "$EvidenceName.sh"

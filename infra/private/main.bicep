@@ -3,6 +3,7 @@ param vnetId string
 param subnetId string
 param storageId string
 param vaultId string
+param workspaceId string = ''
 
 var connections = [
   {
@@ -77,3 +78,58 @@ resource groups 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05
 }]
 
 output endpointIds array = [for i in range(0, length(connections)): endpoints[i].id]
+
+var workspaceZoneNames = [
+  'privatelink.api.azureml.ms'
+  'privatelink.notebooks.azure.net'
+]
+
+resource workspaceZones 'Microsoft.Network/privateDnsZones@2024-06-01' = [for zone in workspaceZoneNames: if (!empty(workspaceId)) {
+  name: zone
+  location: 'global'
+}]
+
+resource workspaceLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [for (zone, i) in workspaceZoneNames: if (!empty(workspaceId)) {
+  name: '${workspaceZones[i].name}/edge'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
+}]
+
+resource workspaceEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (!empty(workspaceId)) {
+  name: 'pe-amlarclab-workspace'
+  location: location
+  properties: {
+    subnet: {
+      id: subnetId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'workspace'
+        properties: {
+          privateLinkServiceId: workspaceId
+          groupIds: [
+            'amlworkspace'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource workspaceZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (!empty(workspaceId)) {
+  parent: workspaceEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [for (zone, i) in workspaceZoneNames: {
+      name: 'workspace-${i}'
+      properties: {
+        privateDnsZoneId: workspaceZones[i].id
+      }
+    }]
+  }
+}
