@@ -4,7 +4,7 @@ name: campaign_synthetic_snapshot
 version: 1
 display_name: Synthetic asset snapshot (not Fabric M2)
 code: ../..
-environment: azureml:campaign-training:1
+environment: azureml:campaign-training:2
 inputs:
   source:
     type: uri_folder

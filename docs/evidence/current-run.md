@@ -107,13 +107,16 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   with Forbidden post-outcome feature: measured_outcome; the attempted merge was
   rejected after that completed failure. The fixture was restored without
   entering main or the shared local worktree.
-  [PR 10](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/10) tracks the
-  versioned rules and passing-path validation. Zero required PR approvals is an
+  The restored [PR 10](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/10)
+  [passed required CI](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45207190294)
+  and merged without bypass. Zero required PR approvals is an
   explicit single-person lab limitation, not independent review.
 - Fabric ARM capacity discovery passed; Fabric API token acquisition failed
   for operator and P-CI with AADSTS500014 (resource service principal disabled).
   Requires Entra-admin investigation; do not misclassify it as missing capacity
   or a Fabric SP allowlist denial.
+  [Assigned admin-action issue 11](https://github.com/mikkokallio/aml-mlops-arc-lab/issues/11)
+  tracks the tenant-policy decision and mandatory token/API retests.
 
 ## Arc workaround experiments
 
