@@ -43,6 +43,31 @@ jobs:
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq -er '.value')"
           echo "::add-mask::$token"
+          printf '%s' "$token" | node -e '
+            let token = "";
+            process.stdin.on("data", chunk => { token += chunk; });
+            process.stdin.on("end", () => {
+              let claims = {};
+              try {
+                const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+                if (decoded && typeof decoded === "object") claims = decoded;
+              } catch {}
+              const audience = "api://AzureADTokenExchange";
+              const comparisons = {
+                oidc_issuer_matches: claims.iss === "https://token.actions.githubusercontent.com",
+                oidc_audience_matches: Array.isArray(claims.aud)
+                  ? claims.aud.length === 1 && claims.aud[0] === audience
+                  : claims.aud === audience,
+                oidc_subject_main_ref_matches: claims.sub === "repo:mikkokallio/aml-mlops-arc-lab:ref:refs/heads/main",
+                oidc_subject_train_environment_matches: claims.sub === "repo:mikkokallio/aml-mlops-arc-lab:environment:train",
+                oidc_subject_prod_environment_matches: claims.sub === "repo:mikkokallio/aml-mlops-arc-lab:environment:prod",
+                dispatched_ref_is_main: process.env.GITHUB_REF === "refs/heads/main"
+              };
+              for (const [name, matches] of Object.entries(comparisons)) {
+                process.stdout.write(`${name}=${matches}\n`);
+              }
+            });
+          '
           login_stderr="$AZURE_CONFIG_DIR/login.stderr"
           if az login --service-principal --username "$AZURE_CLIENT_ID" \
             --tenant "$AZURE_TENANT_ID" --federated-token "$token" \
@@ -109,6 +134,31 @@ jobs:
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq -er '.value')"
           echo "::add-mask::$token"
+          printf '%s' "$token" | node -e '
+            let token = "";
+            process.stdin.on("data", chunk => { token += chunk; });
+            process.stdin.on("end", () => {
+              let claims = {};
+              try {
+                const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+                if (decoded && typeof decoded === "object") claims = decoded;
+              } catch {}
+              const audience = "api://AzureADTokenExchange";
+              const comparisons = {
+                oidc_issuer_matches: claims.iss === "https://token.actions.githubusercontent.com",
+                oidc_audience_matches: Array.isArray(claims.aud)
+                  ? claims.aud.length === 1 && claims.aud[0] === audience
+                  : claims.aud === audience,
+                oidc_subject_main_ref_matches: claims.sub === "repo:mikkokallio/aml-mlops-arc-lab:ref:refs/heads/main",
+                oidc_subject_train_environment_matches: claims.sub === "repo:mikkokallio/aml-mlops-arc-lab:environment:train",
+                oidc_subject_prod_environment_matches: claims.sub === "repo:mikkokallio/aml-mlops-arc-lab:environment:prod",
+                dispatched_ref_is_main: process.env.GITHUB_REF === "refs/heads/main"
+              };
+              for (const [name, matches] of Object.entries(comparisons)) {
+                process.stdout.write(`${name}=${matches}\n`);
+              }
+            });
+          '
           login_stderr="$AZURE_CONFIG_DIR/login.stderr"
           if az login --service-principal --username "$AZURE_CLIENT_ID" \
             --tenant "$AZURE_TENANT_ID" --federated-token "$token" \

@@ -3,7 +3,7 @@ type: command
 name: campaign_validate
 version: 1
 code: ../..
-environment: azureml:campaign-training:1
+environment: azureml:campaign-training:2
 inputs:
   snapshot:
     type: uri_folder

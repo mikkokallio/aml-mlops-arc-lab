@@ -10,7 +10,7 @@ command: >-
   --experiment arc-campaign-probe
   --register
 compute: azureml:cpu-training
-environment: azureml:campaign-training:1
+environment: azureml:campaign-training:2
 identity:
   type: managed
 outputs:

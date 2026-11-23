@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
 name: campaign-training
-version: "1"
+version: "2"
 description: Pinned CPU environment; Conda dependencies are generated from requirements.txt.
 image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04@sha256:b0f944e91073d89724c569a44484bbdc9045a16a0034a9260e647052e73d365a

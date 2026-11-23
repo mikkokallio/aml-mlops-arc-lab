@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from azure.ai.ml import MLClient, load_environment
+from azure.ai.ml.entities import Environment
 from azure.identity import AzureCliCredential
 
 
@@ -25,12 +26,18 @@ def main() -> None:
     ]
     if not requirements:
         raise ValueError("The training dependency manifest must not be empty.")
-    environment = load_environment(source=args.environment)
-    environment.conda_file = {
-        "name": "campaign-training",
-        "channels": ["conda-forge"],
-        "dependencies": ["python=3.12.3", "pip", {"pip": requirements}],
-    }
+    manifest = load_environment(source=args.environment)
+    environment = Environment(
+        name=manifest.name,
+        version=manifest.version,
+        description=manifest.description,
+        image=manifest.image,
+        conda_file={
+            "name": "campaign-training",
+            "channels": ["conda-forge"],
+            "dependencies": ["python=3.12.3", "pip", {"pip": requirements}],
+        },
+    )
     client = MLClient(
         AzureCliCredential(process_timeout=60),
         args.subscription,
