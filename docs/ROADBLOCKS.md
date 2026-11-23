@@ -215,7 +215,12 @@ source/data upload, improved MAE by 1.4708% against the registered-v1 fixture
 on the same new holdout, and registered model version 2. No additional grant
 was required. This reference-only control-plane submission is distinct from
 uploading source to private storage from a public GitHub-hosted runner;
-Actions-launched training remains a separate acceptance check.
+Actual GitHub run 45230564606 subsequently proved that reference-only path
+under P-CI: the managed pipeline and all five children completed with the
+existing workspace role and training runtime identity. No P-CI Blob write,
+public storage access, additional grant or VM start was needed. Current-checkout
+source packaging and private artifact/log access from the hosted runner remain
+separate, unproven capabilities.
 Managed compute is separate from the edge VM shutdown schedule.
 
 Local environment registration initially hit AzureCliCredential's ten-second

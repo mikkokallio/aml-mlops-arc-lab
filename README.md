@@ -142,5 +142,7 @@ separately from the workflow/orchestrator SHA.
 This deliberately reuses registered assets; it is not fresh-checkout code
 packaging, Fabric integration, deployed-champion selection or model deployment.
 A Completed pipeline can legitimately produce NOT_REGISTERED. Its private gate
-artifacts are not read by this workflow. Actual execution status is recorded
-separately in the measured-results document; a workflow definition is not proof.
+artifacts are not read by this workflow.
+[Actual run 45230564606](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45230564606)
+passed and all five AML child jobs independently read back Completed.
+See the measured-results document for exact provenance and remaining boundaries.

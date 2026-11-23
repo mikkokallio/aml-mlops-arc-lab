@@ -131,6 +131,21 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   observed WAITING before operator self-approval, then succeeded.
   This proves the control-plane identity and approval pause, not independent
   review, model deployment or an end-to-end release.
+- **Actual GitHub-launched training PASSED:**
+  [run 45230564606](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45230564606)
+  used P-CI/train OIDC to submit `gha-registered-45230564606-1`, then polled ARM
+  until Completed. Independent AML CLI readback confirms all five child jobs
+  Completed. The runtime used registered f563 components, environment 2, data 2,
+  explicit synthetic reference model 2, managed identities and force_rerun true.
+  Component source SHA is f563c2fca1d62a6f9a4d209ca5be44d70b65de83;
+  orchestrator SHA is separately 520361931b61a376b843e5d30c840f700ee5ea1e.
+  The hosted runner uploaded no training source/data and accessed no private
+  MLflow/artifact endpoints. No new grants or VM start were required.
+  Registry readback still lists only synthetic proof model versions 1 and 2.
+  The workflow did not read private gate artifacts: do not infer a particular
+  decision reason from Completed or from the unchanged registry.
+  This is genuine Actions-launched managed training, not fresh-checkout code
+  packaging, production deployment, Fabric or deployed-champion proof.
 - Azure-free GitHub CI baseline [passed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197315333).
   A [real leaking-feature PR](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/9)
   [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
