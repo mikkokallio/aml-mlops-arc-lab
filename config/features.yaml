@@ -1,0 +1,27 @@
+schema_version: 1
+features:
+  item_position:
+    type: integer
+    min: 1
+    max: 120
+    known_at_prediction_time: true
+  setting_a:
+    type: number
+    min: -4
+    max: 4
+    known_at_prediction_time: true
+  setting_b:
+    type: number
+    min: -4
+    max: 4
+    known_at_prediction_time: true
+  measured_outcome:
+    type: number
+    known_at_prediction_time: false
+  final_adjustment:
+    type: number
+    known_at_prediction_time: false
+selected:
+  - item_position
+  - setting_a
+  - setting_b

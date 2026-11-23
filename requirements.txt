@@ -1,0 +1,10 @@
+azure-ai-ml==1.30.0
+azure-identity==1.25.1
+azureml-mlflow==1.60.0
+mlflow==2.22.2
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.6.1
+xgboost==2.1.4
+PyYAML==6.0.2
+pytest==8.4.2

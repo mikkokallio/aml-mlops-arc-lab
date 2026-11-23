@@ -1,0 +1,7 @@
+$schema: https://azuremlschemas.azureedge.net/latest/kubernetesOnlineEndpoint.schema.json
+name: campaign-arc
+auth_mode: key
+compute: azureml:arc-k3s
+identity:
+  type: system_assigned
+description: Private Arc feasibility endpoint; no internet-facing scoring route.

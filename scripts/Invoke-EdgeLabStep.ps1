@@ -1,0 +1,39 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][string]$Script,
+    [Parameter(Mandatory)][string]$EvidenceName
+)
+
+$ErrorActionPreference = 'Stop'
+$directory = Join-Path $PSScriptRoot '..\.local'
+$identities = (Get-Content (Join-Path $directory 'rg-amlarclab-id.deployment.json') -Raw | ConvertFrom-Json).properties.outputs.identities.value
+$edge = (Get-Content (Join-Path $directory 'rg-amlarclab-edge.deployment.json') -Raw | ConvertFrom-Json).properties.outputs
+$ml = (Get-Content (Join-Path $directory 'rg-amlarclab-ml.deployment.json') -Raw | ConvertFrom-Json).properties.outputs
+$subscription = ($edge.vmId.value -split '/')[2]
+$variables = [ordered]@{
+    LAB_SUBSCRIPTION = $subscription
+    LAB_ONBOARDING_CLIENT_ID = $edge.onboardingClientId.value
+    LAB_RGC_CLIENT_ID = ($identities | Where-Object name -eq 'p-rgc').clientId
+    LAB_DS_CLIENT_ID = ($identities | Where-Object name -eq 'p-ds').clientId
+    LAB_COMPUTE_ID = ($identities | Where-Object name -eq 'compute').id
+    LAB_COMPUTE_CLIENT_ID = ($identities | Where-Object name -eq 'compute').clientId
+    LAB_WORKSPACE_ID = $ml.workspaceId.value
+    LAB_CLUSTER_ID = "/subscriptions/$subscription/resourceGroups/rg-amlarclab-edge/providers/Microsoft.Kubernetes/connectedClusters/arc-amlarclab"
+    LAB_INSTANCE_TYPES_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\config\instance-types.yml')))
+    LAB_TRAIN_CODE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\src\train.py')))
+    LAB_FEATURES_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\config\features.yaml')))
+    LAB_REQUIREMENTS_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\requirements.txt')))
+    LAB_TRACKING_URI = (Get-Content (Join-Path $directory 'workspace.json') -Raw | ConvertFrom-Json).properties.mlFlowTrackingUri
+    LAB_STORAGE_HOST = $ml.storageName.value + '.blob.core.windows.net'
+    LAB_VAULT_HOST = ($ml.vaultId.value -split '/')[-1] + '.vault.azure.net'
+    LAB_COMPARE_CODE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'compare_predictions.py')))
+    LAB_SCORE_CODE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'score_private.py')))
+}
+$prefix = ($variables.GetEnumerator() | ForEach-Object { "export $($_.Key)='$($_.Value)'" }) -join "`n"
+$generated = Join-Path $directory "$EvidenceName.sh"
+[System.IO.File]::WriteAllText(
+    $generated,
+    $prefix + "`n" + (Get-Content -LiteralPath $Script -Raw),
+    [System.Text.UTF8Encoding]::new($false)
+)
+& (Join-Path $PSScriptRoot 'Invoke-Edge.ps1') -Script $generated -EvidenceName $EvidenceName

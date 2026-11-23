@@ -1,0 +1,5 @@
+#cloud-config
+output:
+  all: '| tee -a /var/log/cloud-init-output.log /dev/ttyS0'
+runcmd:
+  - [bash, -c, 'for host in management.azure.com pypi.org mcr.microsoft.com; do if curl --connect-timeout 5 --max-time 10 --silent --output /dev/null "https://$host"; then echo "LAB_EGRESS_PROBE $host REACHABLE"; else echo "LAB_EGRESS_PROBE $host UNREACHABLE"; fi; done']
