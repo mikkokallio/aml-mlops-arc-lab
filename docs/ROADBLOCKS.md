@@ -40,7 +40,7 @@ proved by the successful Standard_D4s_v5 deployment, not those incomplete probes
 | InstanceType admission | CRD rejected CPU string 0.5 | Equivalent standard Kubernetes quantity 500m | Applied successfully |
 | MLflow adapter | azureml-mlflow 1.61.0 calls a newer ArtifactRepository constructor than mlflow 2.22.2 provides | Inspected 1.60.0 wheel constructor; pin adapter 1.60.0 | Installed; pip check passes |
 | YAML loading | Deployment defaults to managed without type; endpoint rejects type | Deployment type=kubernetes; endpoint selected through compute field | SDK loads both as Kubernetes entities |
-| AML extension 1.1.115 and 1.1.109 | Identity controller/proxy/gateway fail: Unknown cluster type Unknown | ARM identity is SystemAssigned, but Helm configuration has UserAssigned in both identity fields; neither legacy nor canonical global setting resolves it | Both versions timed out; new canonical-setting rollout reproduces the crash, control-plane update pending; NOT PASSED |
+| AML extension 1.1.115 and 1.1.109 | Identity controller/proxy/gateway fail: Unknown cluster type Unknown | ARM identity is SystemAssigned, but Helm configuration has UserAssigned in both identity fields; neither legacy nor canonical global setting resolves it | Both versions and the final canonical-setting update timed out; NOT PASSED |
 | MLflow metrics | Workspace storage authentication failure; resource logs show OAuth 403 AuthorizationFailure on CreateContainer/GetBlob by workspace identity | Public access remains Disabled; default Deny; resource-instance exception for this workspace only, with existing identity RBAC | Minimal metric operation and full P-DS training/artifact logging/model registration PASSED |
 | Local caller datastore access | Direct OAuth container access failed | Storage Blob Data Contributor for current lab operator on lab storage only | Granted by Owner, logged; did not resolve backend metric failure |
 
@@ -99,7 +99,7 @@ Do not treat another version guess or a manual managed-pod patch as resolution.
 A final configuration check supplies `global.azure.identity.type=SystemAssigned`
 through the extension API, matching actual ARM identity rather than inventing a
 cluster identity. ARM accepted the global setting and the automatic-upgrade
-restoration; rollout is Updating. Acceptance requires checking the rendered
+restoration; that update ultimately timed out too. Acceptance requires checking the rendered
 configuration and real readiness, not just request acceptance.
 
 The new install's Helm timestamp is after the canonical-setting request. Its
@@ -146,6 +146,55 @@ client path. No additional storage role was required for that DS operation.
 Author-performed execution is provisional persona evidence, not an independent
 ownership drill. Endpoint access, serving image compatibility, and the proposed
 secret-scoped Key Vault roles remain untested.
+
+### Independent managed-training path
+
+Arc is not a dependency for AML command jobs. The regional quota API confirms
+available dedicated CPU quota. Creating a no-public-IP AML compute initially
+failed with `Provided EnableNodePublicIp 'False' requires workspace private endpoint`.
+A workspace private endpoint and its API/notebook private DNS zones were added
+to the existing lab VNet; public-access restrictions on storage/Key Vault were
+not relaxed. This additional endpoint adds recurring cost.
+
+The retry provisioned `cpu-training`: SystemAssigned identity, no node public IP,
+minimum zero nodes, maximum one, two-minute idle scale-down. Workspace image
+builds use that private cluster. A training environment was registered using an
+immutable MCR image digest and the shared pinned dependency manifest.
+
+The existing workspace-scoped P-DS identity successfully submitted a genuine AML
+command job from inside the VNet. Only committed training source was archived;
+the real source SHA is injected as metadata. Submission returned Starting.
+Execution/model-registration acceptance is pending, not inferred from submission.
+Managed compute is separate from the edge VM shutdown schedule.
+
+Local environment registration initially hit AzureCliCredential's ten-second
+subprocess timeout. Raising its explicit process timeout to sixty seconds fixed
+the observed Windows CLI-startup failure; this was not an Azure permission denial.
+
+### Fabric prerequisite: tenant-admin action required
+
+Independent live probes succeeded against ARM: zero Fabric capacities in the
+lab subscription, and F2 advertised in all three planned regions without listed
+restrictions. This does not establish tenant-wide capacity absence.
+
+Both operator and P-CI Fabric API token requests failed with:
+
+```text
+AADSTS500014: The service principal for resource
+'https://api.fabric.microsoft.com' is disabled.
+```
+
+Entra administration must investigate the resource enterprise application's
+disabled status and subscription validity, restoring access only if policy
+permits. Subscription Owner does not by itself provide that tenant authority.
+This error is not evidence of a Fabric service-principal allowlist problem;
+Fabric API admission/workspace permissions remain unverified behind it.
+No tenant settings, role grants, capacity purchases, existing-resource reuse,
+or business data access were performed for these probes.
+
+OneLake Storage token acquisition succeeded, but an account-level HEAD returned
+405: reachability only, not a successful OneLake file-read permission test.
+Raw evidence is in ignored `.local`; the probes are under `scripts/fabric`.
 
 Raw evidence, resource identities, correlation IDs, and exact Owner role grants
 remain in ignored `.local`; the public register deliberately omits identifiers.

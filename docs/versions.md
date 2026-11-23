@@ -14,7 +14,7 @@ Date: 23 November 2026.
 | Python dependencies | Exact direct pins in requirements.txt | Installed; pip check and six focused tests pass |
 | Azure MLflow adapter | 1.60.0 | 1.61.0 constructor incompatible with pinned MLflow 2.22.2 |
 | Arc agents | 1.39.3 | Observed Connected; automatic upgrades |
-| AML Kubernetes extension | 1.1.115 and 1.1.109 timed out | Canonical-setting install still renders UserAssigned and crashes on 1.1.109; auto-minor restored; update pending |
+| AML Kubernetes extension | 1.1.115 and 1.1.109 timed out | Canonical-setting update also timed out; auto-minor policy restored |
 
 The local Python executable on PATH is ARM64. Training explicitly selects the
 already installed AMD64 Python interpreter for xgboost wheel compatibility.

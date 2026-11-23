@@ -58,8 +58,8 @@ actual image tags were checked.
 Automatic-minor upgrades were temporarily disabled for the previous-release
 comparison, then restored. ARM confirms autoUpgradeMode compatible and
 autoUpgradeMinorVersion true. That restoration did not immediately replace the
-observed 1.1.109 install. The final control-plane update was still pending when
-this brief was written; the component-level crash was already reproduced.
+observed 1.1.109 install. The final control-plane update subsequently timed out
+with the same identity-controller/proxy/gateway crash-loop symptoms.
 
 ## Internal questions
 

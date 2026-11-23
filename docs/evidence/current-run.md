@@ -50,7 +50,7 @@
   global.azure.identity.type=SystemAssigned, matching actual ARM identity.
   ARM accepted the setting. The new Helm install still renders both identity
   fields as UserAssigned, and its actual 1.1.109 gateway/proxy containers again
-  crash with Unknown cluster type. The control-plane update is still pending.
+  crash with Unknown cluster type. The final control-plane update also timed out.
 - Original storage failures were OAuth 403 responses. Operator confirmed tenant
   guardrail remediation. Public-access attempts stopped; a private/scoped-trust
   configuration resolved minimal metric logging.
@@ -69,3 +69,18 @@ from VS Code via Run Command. This does not demonstrate the VS Code AML
 GUI extension or an interactive remote-development experience.
 
 Neither Arc Connected nor a local model/test substitutes for real AML scoring.
+
+## Independent work advanced while Arc is blocked
+
+- Private AML managed compute provisioned, zero minimum/one maximum node and
+  no public node IP. Its required workspace private endpoint was added after
+  the initial create returned that explicit prerequisite error.
+- Immutable-base-image training environment registered. P-DS submitted a real
+  AML command job with committed-source provenance; returned Starting.
+  Execution acceptance is still pending.
+- Azure-free GitHub CI/Dependabot implementation and focused contract tests
+  committed. Actual Actions and leaking-feature PR verification are in progress.
+- Fabric ARM capacity discovery passed; Fabric API token acquisition failed
+  for operator and P-CI with AADSTS500014 (resource service principal disabled).
+  Requires Entra-admin investigation; do not misclassify it as missing capacity
+  or a Fabric SP allowlist denial.
