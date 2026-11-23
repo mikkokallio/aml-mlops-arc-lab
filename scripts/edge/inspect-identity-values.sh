@@ -6,6 +6,7 @@ import base64,gzip,json,sys
 items=json.load(sys.stdin)["items"]
 latest=max(items,key=lambda x:int(x["metadata"]["labels"]["version"]))
 r=json.loads(gzip.decompress(base64.b64decode(base64.b64decode(latest["data"]["release"]))))
+print("release",r["version"],"chart",r["chart"]["metadata"]["version"],"appVersion",r["chart"]["metadata"].get("appVersion"),"status",r["info"]["status"],"lastDeployed",r["info"].get("last_deployed"))
 for label,v in (("config",r["config"]),("defaults",r["chart"]["values"])):
     print(label,"Azure.Identity.Type",v.get("Azure",{}).get("Identity",{}).get("Type"))
     print(label,"global.azure.identity.type",v.get("global",{}).get("azure",{}).get("identity",{}).get("type"))

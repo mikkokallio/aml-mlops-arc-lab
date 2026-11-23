@@ -38,13 +38,19 @@
 
 - Initial AML extension 1.1.115 install timed out after identity components
   rejected cluster type Unknown. Initial create and corrective update both
-  failed. Actual 1.1.109 containers reproduce the same crash; that update's
-  control-plane operation is still awaiting its terminal result.
+  failed. Actual 1.1.109 containers reproduce the same crash; its control-plane
+  update also timed out.
   ARM extension identity reports SystemAssigned, but Helm release configuration
   reports UserAssigned in both legacy and global identity fields. Supplying
   Azure.Identity.Type=SystemAssigned did not resolve the mismatch.
   This is an observed installation blocker, not yet a vendor-confirmed defect.
   No direct patch to a managed pod was made.
+- Automatic-minor upgrades restored: ARM confirms mode compatible and
+  autoUpgradeMinorVersion true. A final configuration check supplies
+  global.azure.identity.type=SystemAssigned, matching actual ARM identity.
+  ARM accepted the setting. The new Helm install still renders both identity
+  fields as UserAssigned, and its actual 1.1.109 gateway/proxy containers again
+  crash with Unknown cluster type. The control-plane update is still pending.
 - Original storage failures were OAuth 403 responses. Operator confirmed tenant
   guardrail remediation. Public-access attempts stopped; a private/scoped-trust
   configuration resolved minimal metric logging.

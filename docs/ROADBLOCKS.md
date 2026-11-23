@@ -15,6 +15,15 @@ Private command/output log: `.local/admin-actions.jsonl`. Bootstrap provisioning
 was performed by the authorized Owner, not represented as a successful
 restricted-persona drill. Actual restricted operations are recorded separately.
 
+Private-connectivity provisioning also crosses resource-group scopes: private
+endpoints, their DNS zone groups, private DNS zones and VNet links are in the ML
+RG, while the referenced subnet/VNet are in the edge RG. Repeating this requires
+the corresponding Network resource writes, subnet/VNet join permissions at the
+referenced network, and target storage/Key Vault private-link approval rights.
+Contributor on the ML RG alone is not evidence that these cross-scope operations
+are permitted. This deployment was performed by Owner; a restricted-persona
+private-network provisioning drill has NOT RUN.
+
 The AML size/quota CLI probes attempted a dynamic upgrade of the user's shared
 AML extension. Those two task-owned processes were stopped. VM capacity is
 proved by the successful Standard_D4s_v5 deployment, not those incomplete probes.
@@ -31,7 +40,7 @@ proved by the successful Standard_D4s_v5 deployment, not those incomplete probes
 | InstanceType admission | CRD rejected CPU string 0.5 | Equivalent standard Kubernetes quantity 500m | Applied successfully |
 | MLflow adapter | azureml-mlflow 1.61.0 calls a newer ArtifactRepository constructor than mlflow 2.22.2 provides | Inspected 1.60.0 wheel constructor; pin adapter 1.60.0 | Installed; pip check passes |
 | YAML loading | Deployment defaults to managed without type; endpoint rejects type | Deployment type=kubernetes; endpoint selected through compute field | SDK loads both as Kubernetes entities |
-| AML extension 1.1.115 and 1.1.109 | Identity controller/proxy/gateway fail: Unknown cluster type Unknown | ARM identity is SystemAssigned, but Helm configuration has UserAssigned in both identity fields; Azure.Identity.Type=SystemAssigned did not resolve it | 1.1.115 create/update timed out; actual 1.1.109 containers reproduce the crash, control-plane update still pending; NOT PASSED |
+| AML extension 1.1.115 and 1.1.109 | Identity controller/proxy/gateway fail: Unknown cluster type Unknown | ARM identity is SystemAssigned, but Helm configuration has UserAssigned in both identity fields; neither legacy nor canonical global setting resolves it | Both versions timed out; new canonical-setting rollout reproduces the crash, control-plane update pending; NOT PASSED |
 | MLflow metrics | Workspace storage authentication failure; resource logs show OAuth 403 AuthorizationFailure on CreateContainer/GetBlob by workspace identity | Public access remains Disabled; default Deny; resource-instance exception for this workspace only, with existing identity RBAC | Minimal metric operation and full P-DS training/artifact logging/model registration PASSED |
 | Local caller datastore access | Direct OAuth container access failed | Storage Blob Data Contributor for current lab operator on lab storage only | Granted by Owner, logged; did not resolve backend metric failure |
 
@@ -75,12 +84,10 @@ and [secure AML dependencies](https://learn.microsoft.com/en-us/azure/machine-le
 
 The cluster's stable version-discovery API explicitly offered 1.1.115 and
 1.1.109, not a guessed 1.1.114. Actual 1.1.109 containers reproduce the same
-Unknown cluster-type crash; the update operation has not yet returned.
-Automatic upgrades are temporarily disabled for that comparison. This is a
-logged exception to the preferred automatic-minor policy, not a silent permanent
-change; restore the normal policy after diagnosis or explicitly document any
-remaining compatibility constraint. No Relay resource is deleted or modified by
-a janitor.
+Unknown cluster-type crash; that update also timed out.
+Automatic upgrades were temporarily disabled for the comparison, then restored:
+ARM confirms autoUpgradeMode compatible and autoUpgradeMinorVersion true.
+No Relay resource is deleted or modified by a janitor.
 
 Selective Helm inspection shows chart defaults specify SystemAssigned, while
 the release configuration specifies UserAssigned for both `Azure.Identity.Type`
@@ -88,6 +95,48 @@ and `global.azure.identity.type`. The legacy helper maps SystemAssigned to ARC,
 AKSCreated to AKS, and other values to Unknown. This explains the rejected
 rendered cluster type, but does not yet identify a supported producer-side fix.
 Do not treat another version guess or a manual managed-pod patch as resolution.
+
+A final configuration check supplies `global.azure.identity.type=SystemAssigned`
+through the extension API, matching actual ARM identity rather than inventing a
+cluster identity. ARM accepted the global setting and the automatic-upgrade
+restoration; rollout is Updating. Acceptance requires checking the rendered
+configuration and real readiness, not just request acceptance.
+
+The new install's Helm timestamp is after the canonical-setting request. Its
+chart is 1.1.109; both rendered identity fields are still UserAssigned. Fresh
+gateway/proxy logs reproduce the same Unknown cluster-type failure.
+Thus neither spelling changes the actual rendered configuration. No additional
+RBAC grant was made for this crash; no permission denial explains these logs.
+An automatic-upgrade policy does not prove that the installed release immediately
+returned to 1.1.115.
+
+### Extension escalation evidence
+
+Expected: the extension with ARM identity SystemAssigned renders the ARC cluster
+type and its identity components become ready.
+
+Observed: the chart's legacy selector receives UserAssigned, maps it to Unknown,
+and the token-provider constructor rejects Unknown before normal operation.
+The installed agent/chart integration's supported correction is unresolved.
+This is not yet a vendor-confirmed defect, and no alternate target counts as
+an Arc pass.
+
+Reproducer in this lab:
+
+1. Connect the pinned k3s cluster to Arc and verify Connected.
+2. Run the inference-only extension installer; record version and failure.
+3. Use the logged extension-update script to supply
+   `Azure.Identity.Type=SystemAssigned`; verify ARM retention and rendered values.
+4. Repeat with `global.azure.identity.type=SystemAssigned`. The
+   `inspect-identity-values.sh` script prints only selected nonsecret identity
+   fields and release metadata; `diagnose-extension.sh` captures component errors.
+5. Compare the post-request Helm timestamp and image versions, not an earlier
+   release. Do not dump the full Helm secret or protected Relay settings.
+
+Ignored local evidence includes `canonical-identity-render-version.json`,
+`canonical-identity-component-logs.json`, `extension-escalation-activity.json`,
+and `admin-actions.jsonl` under `.local`. Correlation IDs and raw account/resource
+identities are retained privately, not copied into a public issue.
 
 ### Successful private training boundary
 
