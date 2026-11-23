@@ -1,6 +1,6 @@
 azure-ai-ml==1.30.0
 azure-identity==1.25.1
-azureml-mlflow==1.60.0
+azureml-mlflow==1.62.0.post7
 mlflow==2.22.2
 numpy==1.26.4
 pandas==2.2.3
