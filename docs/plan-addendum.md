@@ -12,8 +12,10 @@ This addendum records the execution decisions approved for the lab.
   comparison with the same model locally.
 - Stretch: GitHub OIDC release approval, second version, traffic rollback,
   and Fabric permission/capacity probes.
-- Remaining pipeline, Fabric, monitoring, managed endpoint, and ownership-drill
-  work is NOT RUN unless the required path finishes early.
+- Subsequent operator direction: advance independent pipeline and GitHub tracks
+  in parallel while Arc is blocked, rather than waiting for its resolution.
+  Fabric integration was later explicitly deferred in this lab. Monitoring,
+  serving and ownership acceptance require their own measured evidence.
 - Calendar estimates are not acceptance evidence.
 
 ## Authorization

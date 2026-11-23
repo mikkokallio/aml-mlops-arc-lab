@@ -98,10 +98,26 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   `magenta_carpet_7xbqwfc7jp` completed with NOT_REGISTERED and no new model
   version. Both used committed source
   f563c2fca1d62a6f9a4d209ca5be44d70b65de83, environment 2, managed identities
-  and synthetic data version 1. Data version 2 was separately registered;
-  that registration alone is not proof of its pipeline consumption.
+  and synthetic data version 1.
   The comparison model is an explicit synthetic fixture, not a deployed
   champion. Neither execution proves Fabric ingestion or production release.
+- Changed-data execution `cyan_quince_gwc0wwhyfw` completed using synthetic
+  data version 2, the same committed f563 components and environment 2.
+  The snapshot SHA-256 changed from
+  `112917b49ac405bb0dae20d7f06fceb1c467d6fda4b20ae942c2b4d216bc4203`
+  to `71ec5e60738c608842937bdc42d62a6e32129467d9ee38ca1da6346bff6c3750`.
+  Candidate and registered-model-v1 fixture were evaluated on the SAME new
+  campaign-grouped holdout: MAE 0.4167589735 versus 0.4229801117,
+  a 1.4708% improvement. Candidate 1-49/50+ MAE was
+  0.4202226723/0.4122043658; both satisfy the absolute 2.0 threshold.
+  The unchanged policy returned ELIGIBLE and registered
+  `campaign-m3-synthetic-proof:2`, linked to training run
+  `f3eda736-d476-4bb3-94fb-d1245e1dda87`.
+  Existing registered components were reused without source/data upload;
+  every component used managed identity and no new grants were added.
+  The original VM was restored to deallocated; its schedule was unchanged.
+  This proves changed-data consumption/lineage and same-holdout synthetic
+  comparison, not a deployed-champion or GitHub-triggered-training acceptance.
 - GitHub OIDC federated credentials and repository secrets are configured.
   The [first actual Actions run](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45205044415)
   failed in train authentication; production was skipped and no approval made.

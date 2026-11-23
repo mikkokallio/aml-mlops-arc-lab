@@ -210,6 +210,12 @@ Two actual five-component synthetic pipelines also completed: an eligible
 registration and a controlled NOT_REGISTERED case without an extra version.
 Both used committed f563c2f source, environment 2 and data version 1. Their
 comparison fixture is not a deployed champion and their input is not Fabric.
+A subsequent actual data-version-2 run reused registered components without
+source/data upload, improved MAE by 1.4708% against the registered-v1 fixture
+on the same new holdout, and registered model version 2. No additional grant
+was required. This reference-only control-plane submission is distinct from
+uploading source to private storage from a public GitHub-hosted runner;
+Actions-launched training remains a separate acceptance check.
 Managed compute is separate from the edge VM shutdown schedule.
 
 Local environment registration initially hit AzureCliCredential's ten-second
