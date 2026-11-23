@@ -373,8 +373,68 @@ subsequently deleted and read back absent before Container Apps was started.
 This is unauthenticated private HTTP portable serving, not AML management or
 production security/release acceptance.
 
-Container Apps is **NOT YET TESTED**. Its result must not be inferred from the
-working targets or local tests.
+### Internal Azure Container Apps: HTTPS REST passed
+
+A disposable internal VNet environment used the Consumption workload profile
+and a single app replica requesting one CPU and 2 GiB. The same existing
+read-only inference UAMI pulled the same immutable image. Actual environment
+readback confirmed internal=true, the isolated delegated subnet, a private
+static address and the generated infrastructure resource group.
+
+The separate worker contacted the app's actual HTTPS hostname using curl's
+private-address `--resolve` option, preserving SNI and certificate/hostname
+verification without a permanent DNS-zone change. Both initial and final
+committed-checker runs returned the exact bundled model2 manifest and **100
+finite predictions, max absolute error 0**, rtol/atol 0.00001. The final checker
+also disables implicit curl configuration, so a client's default insecure or
+redirect options cannot silently alter this test.
+
+The app's external ingress means reachable outside the app/environment within
+the VNet, not public Internet ingress: the environment itself is internal.
+This is private HTTPS portable serving without app authentication, not AML
+deployment management, production authorization or release-workflow acceptance.
+The app and generated infrastructure resource group are GET404. The environment
+record remains ScheduledForDelete after the first bounded 20-minute cleanup
+wait; a second exact DELETE returned 202 with its operation still pending.
+Actual subnet readback showed no service-association links or IP configurations,
+so only the empty owned ACA subnet was deleted and GET404 verified. The shared
+original VNet was preserved; advice to delete an entire associated VNet was not
+followed. The remaining control-plane record must not be called fully cleaned
+until its own GET404 is observed.
+
+### Matrix boundaries and retained replay assets
+
+All five selected targets passed their specified real-serving tests. Only the
+private managed-online primary received the full serving lifecycle; native AKS
+received AML attachment/deployment/REST tests; VM/ACI/ACA received portable REST
+tests. None substitutes for the still-blocked original Arc path or deferred
+Fabric integration, fresh-checkout hosted-runner training packaging, GitHub
+model release, independent approval, drift monitoring or external notification
+delivery.
+
+The two versioned serving environments and their immutable registry images are
+retained for replay, not as active compute. The restored Basic registry reports
+2,128,945,783 bytes used, below its 10,737,418,240-byte included storage allowance;
+there is no new registry SKU or storage-overage provision for those artifacts.
+The original registered training models/data/environments are unchanged.
+Exact original request/reference fixture bytes were exported privately and all
+four SHA256 hashes independently verified before private-worker removal.
+
+The private worker, its shutdown schedule, NIC and OS disk are all GET404.
+Original VM readback is deallocated and its original enabled 1900 shutdown
+schedule is preserved. Independent final role queries match the original two
+P-DS role/scope pairs and original two read-only inference-UAMI pairs. Registry
+readback is Basic/publicEnabled/adminDisabled with no private connections;
+storage remains publicDisabled/sharedKeyDisabled/defaultDeny with its approved
+private connections.
+
+For scale, a deliberately rounded-up compute estimate using observed provision
+windows and public Sweden Central EUR rates is about EUR0.89: four worker
+D2s_v3 hours, one smoke-VM D2s_v3 hour, two managed DS2_v2 deployment-hours and
+one AKS D4s_v5 hour. This excludes short ACI/ACA usage, disks, temporary registry
+Premium/private-link charges, logs and networking. It is neither a measured
+invoice nor proof of the total EUR30 working ceiling; no hard billing cap was
+promised. No disposable serving compute remains running.
 
 ## Arc workaround experiments
 

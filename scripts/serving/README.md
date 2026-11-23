@@ -61,3 +61,5 @@ address. For ACA's internal ingress use its real HTTPS hostname plus
 creating a permanent private DNS zone. The checker verifies actual readiness
 identity and 100 REST predictions, not just provisioning state. These portable
 checks do not establish AML-managed deployment acceptance.
+Default curl configuration is disabled so implicit insecure/redirect options
+cannot override the check.

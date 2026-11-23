@@ -5,7 +5,9 @@ through Azure Machine Learning to Arc-enabled k3s.
 
 **Current status: training and a private AML managed-online serving lifecycle
 have passed within the recorded boundaries. Arc scoring remains blocked;
-Fabric is explicitly deferred. Disposable alternative-target tests are ongoing.**
+Fabric is explicitly deferred. All five alternative-target serving tests passed.
+Temporary serving compute and the private client worker are removed; the
+inactive ACA environment record is still scheduled for deletion.**
 
 ## Current acceptance target
 
@@ -81,7 +83,10 @@ error. It has no public IP; this is portable HTTP serving, not AML management.
 **Private ACI** also passed real health/model hashes and 100 REST predictions
 with zero reference error, then its group/subnet were removed.
 
-The last target is internal Container Apps.
+**Internal Container Apps** also passed real private HTTPS scoring with verified
+TLS, exact model hashes and 100 predictions with zero reference error.
+
+All five selected targets passed their scoped tests.
 Provisioning is not a REST pass. VM/ACI/ACA
 tests establish portable serving only, not AML-managed deployment acceptance.
 The [portable service instructions](scripts/serving/README.md) describe the
