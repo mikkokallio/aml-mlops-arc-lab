@@ -69,3 +69,21 @@ python -m venv .venv
 Select an AMD64 interpreter explicitly on Windows ARM machines. Workspace
 tracking requires an actual AML tracking URI and authorized Azure credentials.
 Do not treat local file-based MLflow tracking as an AML run.
+
+## GitHub main-branch controls
+
+A repository administrator applies the versioned ruleset to a new lab repository:
+
+```powershell
+$Repo = gh repo view --json nameWithOwner --jq .nameWithOwner
+gh api --method POST "repos/$Repo/rulesets" --input .github\main-ruleset.json
+```
+
+For an existing ruleset, use PUT on `repos/$Repo/rulesets/<ruleset-id>` instead.
+This requires GitHub repository administration permission, not Azure Owner.
+The rules require PRs and the actual GitHub Actions contract check, including
+for administrators; force-push and deletion are forbidden. This single-person
+lab requires zero PR approvals because GitHub prohibits approving one's own PR.
+Independent code review is therefore not demonstrated. The separate production
+environment gate permits recorded lab self-approval; see measured evidence for
+its execution status.
