@@ -37,7 +37,11 @@ def main() -> None:
     parser.add_argument("--endpoint", required=True)
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--step", choices=("blue", "green", "rollback", "rotation", "logs"), required=True)
+    parser.add_argument(
+        "--step",
+        choices=("blue", "green", "rollback", "rotation", "negative", "logs"),
+        required=True,
+    )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     client = MLClient(
@@ -126,6 +130,27 @@ def main() -> None:
             if stale.status_code != 200 or time.monotonic() >= deadline:
                 raise ValueError(f"Rotated-out key was not rejected: HTTP {stale.status_code}")
             time.sleep(10)
+    elif args.step == "negative":
+        request_id = "aml-serving-matrix-negative-1123"
+        response = requests.post(
+            endpoint.scoring_uri,
+            headers={
+                "Authorization": f"Bearer {primary}",
+                "x-ms-client-request-id": request_id,
+            },
+            json={"input_data": {"columns": ["forbidden_feature"], "data": [[1]]}},
+            timeout=60,
+        )
+        if response.status_code not in (400, 424):
+            raise ValueError(f"Invalid inference input did not fail as expected: HTTP {response.status_code}")
+        proof.update(
+            {
+                "client_request_id": request_id,
+                "http_status": response.status_code,
+                "request_kind": "deliberately-invalid-feature-contract",
+            }
+        )
+        proof["valid_request_after"] = score(primary, "1")
     else:
         logs = {}
         readiness = {}
