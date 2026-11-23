@@ -7,7 +7,12 @@ import warnings
 from pathlib import Path
 
 import pytest
-from azure.ai.ml import load_online_deployment, load_online_endpoint
+from azure.ai.ml import (
+    load_component,
+    load_job,
+    load_online_deployment,
+    load_online_endpoint,
+)
 
 from src.train import selected_features
 
@@ -41,6 +46,11 @@ def test_committed_feature_contract_is_prediction_safe() -> None:
     [
         ("endpoint.yml", load_online_endpoint),
         ("deployment.yml", load_online_deployment),
+        ("pipeline-synthetic.yml", load_job),
+        *[
+            (Path("components") / f"{name}.yml", load_component)
+            for name in ("snapshot", "validate", "train", "evaluate", "register")
+        ],
     ],
 )
 def test_aml_yaml_schema_without_network(filename, loader, monkeypatch) -> None:

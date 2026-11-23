@@ -25,19 +25,41 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          umask 077
           trap 'az logout >/dev/null 2>&1 || true; rm -rf "$AZURE_CONFIG_DIR"' EXIT
+          mkdir -p "$AZURE_CONFIG_DIR"
           for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AML_WORKSPACE_RESOURCE_ID; do
+            nonempty=false
+            [[ -z "${!name}" ]] || nonempty=true
+            printf 'Secret %s nonempty=%s\n' "$name" "$nonempty"
             if [[ -z "${!name}" ]]; then echo "::error::Missing required repository secret: $name"; exit 1; fi
+          done
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
+            guid_valid=false
+            [[ "${!name}" =~ ^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$ ]] && guid_valid=true
+            printf 'Secret %s guid_format_valid=%s\n' "$name" "$guid_valid"
           done
           token="$(curl --fail --silent --show-error \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq -er '.value')"
           echo "::add-mask::$token"
-          if ! az login --service-principal --username "$AZURE_CLIENT_ID" \
+          login_stderr="$AZURE_CONFIG_DIR/login.stderr"
+          if az login --service-principal --username "$AZURE_CLIENT_ID" \
             --tenant "$AZURE_TENANT_ID" --federated-token "$token" \
-            --output none --only-show-errors >/dev/null 2>&1; then
+            --output none --only-show-errors >/dev/null 2>"$login_stderr"; then
+            printf 'stage=oidc_login exit_status=0\n'
+          else
+            login_status=$?
             unset token
-            echo "::error::OIDC Azure login failed (identifiers suppressed)."; exit 1
+            printf 'stage=oidc_login exit_status=%s\n' "$login_status"
+            aadsts_codes="$(grep -oE 'AADSTS[0-9]+' "$login_stderr" | LC_ALL=C sort -u | paste -sd ',' - || true)"
+            if [[ -n "$aadsts_codes" ]]; then
+              printf 'AADSTS_codes=%s\n' "$aadsts_codes"
+            else
+              printf 'AADSTS_codes=none (no AADSTS code present)\n'
+            fi
+            echo "::error::OIDC Azure login failed (identifiers suppressed)."
+            exit "$login_status"
           fi
           unset token
           if ! az account set --subscription "$AZURE_SUBSCRIPTION_ID" >/dev/null 2>&1; then
@@ -69,19 +91,41 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          umask 077
           trap 'az logout >/dev/null 2>&1 || true; rm -rf "$AZURE_CONFIG_DIR"' EXIT
+          mkdir -p "$AZURE_CONFIG_DIR"
           for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AML_WORKSPACE_RESOURCE_ID; do
+            nonempty=false
+            [[ -z "${!name}" ]] || nonempty=true
+            printf 'Secret %s nonempty=%s\n' "$name" "$nonempty"
             if [[ -z "${!name}" ]]; then echo "::error::Missing required repository secret: $name"; exit 1; fi
+          done
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
+            guid_valid=false
+            [[ "${!name}" =~ ^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$ ]] && guid_valid=true
+            printf 'Secret %s guid_format_valid=%s\n' "$name" "$guid_valid"
           done
           token="$(curl --fail --silent --show-error \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq -er '.value')"
           echo "::add-mask::$token"
-          if ! az login --service-principal --username "$AZURE_CLIENT_ID" \
+          login_stderr="$AZURE_CONFIG_DIR/login.stderr"
+          if az login --service-principal --username "$AZURE_CLIENT_ID" \
             --tenant "$AZURE_TENANT_ID" --federated-token "$token" \
-            --output none --only-show-errors >/dev/null 2>&1; then
+            --output none --only-show-errors >/dev/null 2>"$login_stderr"; then
+            printf 'stage=oidc_login exit_status=0\n'
+          else
+            login_status=$?
             unset token
-            echo "::error::OIDC Azure login failed (identifiers suppressed)."; exit 1
+            printf 'stage=oidc_login exit_status=%s\n' "$login_status"
+            aadsts_codes="$(grep -oE 'AADSTS[0-9]+' "$login_stderr" | LC_ALL=C sort -u | paste -sd ',' - || true)"
+            if [[ -n "$aadsts_codes" ]]; then
+              printf 'AADSTS_codes=%s\n' "$aadsts_codes"
+            else
+              printf 'AADSTS_codes=none (no AADSTS code present)\n'
+            fi
+            echo "::error::OIDC Azure login failed (identifiers suppressed)."
+            exit "$login_status"
           fi
           unset token
           if ! az account set --subscription "$AZURE_SUBSCRIPTION_ID" >/dev/null 2>&1; then

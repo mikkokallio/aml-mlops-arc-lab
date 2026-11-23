@@ -79,20 +79,37 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   AML command job with committed-source provenance. It reached Running, then
   failed before user code while mounting writable workspaceblobstore output.
   Its separate training-compute identity had no storage data role. Owner granted
-  Storage Blob Data Contributor on that exact container; successful retry is
-  still required. The read-only inference identity was not widened.
+  Storage Blob Data Contributor on that exact container. Retry entered user
+  code, proving that mount blocker cleared, but failed because mlflow was absent.
+  Actual environment v1 has null conda_file: assigning it after SDK construction
+  did not serialize dependencies. Constructor-based registration of immutable
+  v2 is being corrected and tested. Training-job acceptance remains unpassed.
+  The read-only inference identity was not widened.
 - Five-component synthetic pipeline implementation passes local contracts and
   SDK YAML validation. Combined training, scoring, CI and pipeline suite:
-  23 passed. Local model registration is not cloud-pipeline acceptance.
+  23 passed. CI schema coverage was then extended: all eight endpoint,
+  deployment, pipeline and component cases pass with network access denied.
+  Local model registration is not cloud-pipeline acceptance.
 - GitHub OIDC federated credentials and repository secrets are configured.
-  Actual Actions token exchange and production-approval behavior remain untested.
+  The [first actual Actions run](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45205044415)
+  failed in train authentication; production was skipped and no approval made.
+  Suppressed Azure diagnostics prevent a verified cause. A narrowly redacted
+  diagnostic correction is being prepared; token exchange is not accepted.
 - Azure-free GitHub CI baseline [passed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197315333).
   A [real leaking-feature PR](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/9)
   [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
   specifically because measured_outcome is forbidden by the feature contract.
   The PR was closed without merging and its temporary branch deleted.
-  Syntax/indentation checks are not a full Python linter; main-branch rule
-  enforcement and OIDC/release approval are separate checks.
+  Syntax/indentation checks are not a full Python linter.
+- Main ruleset is active with no administrator bypass: an actual direct
+  administrator push was rejected (GH013). A PR-only leaking-feature fixture
+  [failed CI](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45205748229)
+  with Forbidden post-outcome feature: measured_outcome; the attempted merge was
+  rejected after that completed failure. The fixture was restored without
+  entering main or the shared local worktree.
+  [PR 10](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/10) tracks the
+  versioned rules and passing-path validation. Zero required PR approvals is an
+  explicit single-person lab limitation, not independent review.
 - Fabric ARM capacity discovery passed; Fabric API token acquisition failed
   for operator and P-CI with AADSTS500014 (resource service principal disabled).
   Requires Entra-admin investigation; do not misclassify it as missing capacity

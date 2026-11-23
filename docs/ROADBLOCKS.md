@@ -38,13 +38,23 @@ private action log:
   Owner granted Storage Blob Data Contributor on the exact workspaceblobstore
   container, not the account and not the read-only inference identity. Granting
   requires roleAssignments/write there (Owner/RBAC Administrator); ordinary
-  Contributor is insufficient. A successful retry must still verify resolution.
+  Contributor is insufficient. Retry entered user code, verifying mount
+  resolution, then failed on missing mlflow. Environment v1 readback has null
+  conda_file: the SDK omitted post-construction assignment. Fix is constructor
+  input and immutable v2 registration/readback, not another storage grant.
 - GitHub OIDC bootstrap: two federated credentials on the P-CI UAMI require
   userAssignedIdentities/federatedIdentityCredentials/write at that identity,
   for example Managed Identity Contributor. Managed Identity Operator alone
   does not grant that write. Repository Actions-secret creation separately
   requires GitHub repository permission, not Azure Owner. Credentials/secrets
-  are configured and read back; workflow execution remains a separate proof.
+  are configured and read back. First actual train-authentication job failed;
+  production was skipped. The suppressed error must be made safely observable
+  before deciding whether any permission change is needed.
+- Main ruleset creation requires GitHub repository Administration:write, not
+  Azure Owner or AML Contributor. It requires PRs and the named GitHub Actions
+  check with no bypass actors. Actual administrator direct-push and failed-check
+  merge attempts were rejected. Zero required PR reviews is documented because
+  this lab has one person; independent review is not claimed.
 
 | Persona / component | Actual finding | Minimum action and scope | Status |
 |---|---|---|---|
