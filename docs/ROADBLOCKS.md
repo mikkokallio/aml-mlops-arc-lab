@@ -45,6 +45,11 @@ private action log:
   does not grant that write. Repository Actions-secret creation separately
   requires GitHub repository permission, not Azure Owner. Credentials/secrets
   are configured and read back; workflow execution remains a separate proof.
+- Main ruleset creation requires GitHub repository Administration:write, not
+  Azure Owner or AML Contributor. It requires PRs and the named GitHub Actions
+  check with no bypass actors. Actual administrator direct-push and failed-check
+  merge attempts were rejected. Zero required PR reviews is documented because
+  this lab has one person; independent review is not claimed.
 
 | Persona / component | Actual finding | Minimum action and scope | Status |
 |---|---|---|---|

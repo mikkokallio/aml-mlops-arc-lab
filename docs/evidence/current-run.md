@@ -91,8 +91,16 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
   specifically because measured_outcome is forbidden by the feature contract.
   The PR was closed without merging and its temporary branch deleted.
-  Syntax/indentation checks are not a full Python linter; main-branch rule
-  enforcement and OIDC/release approval are separate checks.
+  Syntax/indentation checks are not a full Python linter.
+- Main ruleset is active with no administrator bypass: an actual direct
+  administrator push was rejected (GH013). A PR-only leaking-feature fixture
+  [failed CI](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45205748229)
+  with Forbidden post-outcome feature: measured_outcome; the attempted merge was
+  rejected after that completed failure. The fixture was restored without
+  entering main or the shared local worktree.
+  [PR 10](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/10) tracks the
+  versioned rules and passing-path validation. Zero required PR approvals is an
+  explicit single-person lab limitation, not independent review.
 - Fabric ARM capacity discovery passed; Fabric API token acquisition failed
   for operator and P-CI with AADSTS500014 (resource service principal disabled).
   Requires Entra-admin investigation; do not misclassify it as missing capacity
