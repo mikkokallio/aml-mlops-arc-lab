@@ -68,7 +68,8 @@ returning ARM Succeeded and Helm deployed (chart/app 1.26.6). Its release
 configuration also has UserAssigned in both identity fields, despite
 SystemAssigned chart defaults. The value is therefore not unique to AML.
 This does not identify its producer or demonstrate a Flux reconciliation
-workload. Clean different-minor and different-region AML installs are running.
+workload. Both clean different-minor and different-region AML installs have now
+reproduced the failure; their disposable resources were cleaned up and verified.
 
 All-namespace inspection now locates ExtensionConfig in each release namespace,
 not azure-arc. Incoming AML `spec.parameter.IdentityType` is UserAssigned,
@@ -79,6 +80,56 @@ rendering; the originating service/agent and supported correction remain open.
 Stable and preview Arc resource API reads expose no OIDC/workload-identity
 profile. We have not treated absence as an explicit disabled value or applied
 a speculative identity change.
+
+## Completed isolation matrix
+
+| Target | k3s | Arc resource region | Arc agent | AML extension | Result |
+|---|---|---|---|---|---|
+| Original | 1.35.9+k3s1 | Sweden Central | 1.39.3 | 1.1.115 and 1.1.109 | Unknown cluster type; neither identity-setting spelling changes rendered UserAssigned |
+| Clean A | 1.36.6+k3s1 | Sweden Central | 1.39.3 | 1.1.115 | Incoming UserAssigned; identity components crash-loop |
+| Clean B | 1.35.9+k3s1 | North Europe | 1.39.3 | 1.1.115 | Same incoming value and constructor failure |
+
+Both disposable VMs were in Sweden Central; B varies the Arc resource region,
+not the VM region. A explicitly reported workload identity Disabled, while its
+extension ARM identity was SystemAssigned. A's identity controller, proxy and
+gateway each restarted six times; its ARM operation was still Creating when
+the bounded test stopped. None of these are deployment/scoring passes.
+
+Full healthcheck/component evidence was retained privately before cleanup.
+The agreed practical experiments are exhausted. Do not prescribe another
+unverified identity override, agent downgrade or managed-component patch.
+The original target is retained for a supported mitigation and actual retest.
+
+## One consolidated support request
+
+**Suggested title:** AML Arc extension rejects upstream UserAssigned identity
+as Unknown cluster type across clean Kubernetes-minor and Arc-region cases.
+
+**Expected:** Supported Arc inference-only installation starts its identity
+components and permits AML Kubernetes compute attachment.
+
+**Actual:** SystemAssigned ARM extension receives incoming
+`spec.parameter.IdentityType=UserAssigned`; rendered legacy selector returns
+Unknown and the token-provider constructor crashes. Flux receives the same
+upstream identity value but installs successfully.
+
+**Impact:** AML compute attachment, managed deployment and scoring are blocked.
+Private managed AML training and synthetic cloud pipelines succeed independently.
+
+**Private attachments available:** Original operation/correlation and selected
+rendered-value evidence; A full health/component archive and outcome; B support
+archive and outcome; version/region matrix and verified cleanup records.
+Raw evidence must use an approved private support channel, not this public repo.
+
+**Requested resolution:** Identify the upstream identity producer and provide
+one supported service-side/configuration/release correction, including exact
+applicability and rollback guidance. Address the numbered questions below in
+this same request rather than opening separate tickets for each experiment.
+
+This is a prepared support brief, **not a submitted support case**, and the
+failure is not yet a vendor-confirmed defect.
+
+## Questions for that request
 
 1. What producer supplies UserAssigned in this SystemAssigned extension case:
    extension RP, Arc agent/extension manager, or AML-specific configuration?

@@ -83,18 +83,38 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   code, proving that mount blocker cleared, but failed because mlflow was absent.
   Actual environment v1 has null conda_file: assigning it after SDK construction
   did not serialize dependencies. Constructor-based registration of immutable
-  v2 is being corrected and tested. Training-job acceptance remains unpassed.
+  v2 was corrected, registered and independently read back with every pinned
+  dependency. Retry `musing_branch_g8hmb817q6` completed and registered
+  `campaign-xgboost:2`, MAE 0.4291787231. It used the original committed d9345fe
+  source archive with an explicit environment-v2 runtime override; the archive
+  was not relabelled as newer source.
   The read-only inference identity was not widened.
 - Five-component synthetic pipeline implementation passes local contracts and
   SDK YAML validation. Combined training, scoring, CI and pipeline suite:
   23 passed. CI schema coverage was then extended: all eight endpoint,
   deployment, pipeline and component cases pass with network access denied.
-  Local model registration is not cloud-pipeline acceptance.
+  Actual eligible pipeline `sincere_potato_q841s2zp8c` subsequently completed
+  and registered `campaign-m3-synthetic-proof:1`. Actual controlled rejection
+  `magenta_carpet_7xbqwfc7jp` completed with NOT_REGISTERED and no new model
+  version. Both used committed source
+  f563c2fca1d62a6f9a4d209ca5be44d70b65de83, environment 2, managed identities
+  and synthetic data version 1. Data version 2 was separately registered;
+  that registration alone is not proof of its pipeline consumption.
+  The comparison model is an explicit synthetic fixture, not a deployed
+  champion. Neither execution proves Fabric ingestion or production release.
 - GitHub OIDC federated credentials and repository secrets are configured.
   The [first actual Actions run](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45205044415)
   failed in train authentication; production was skipped and no approval made.
-  Suppressed Azure diagnostics prevent a verified cause. A narrowly redacted
-  diagnostic correction is being prepared; token exchange is not accepted.
+  Safe boolean-only assertion diagnostics established that this new repository
+  uses GitHub's immutable OIDC subject, including owner and repository IDs,
+  rather than the legacy name-only subject. Only the two existing environment
+  federated-credential subjects were corrected; issuer, audience and environment
+  restrictions were preserved.
+  [Actual corrected run](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45212597530)
+  passed both P-CI Azure logins and exact-workspace ARM reads. Production was
+  observed WAITING before operator self-approval, then succeeded.
+  This proves the control-plane identity and approval pause, not independent
+  review, model deployment or an end-to-end release.
 - Azure-free GitHub CI baseline [passed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197315333).
   A [real leaking-feature PR](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/9)
   [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
@@ -117,6 +137,15 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   or a Fabric SP allowlist denial.
   [Assigned admin-action issue 11](https://github.com/mikkokallio/aml-mlops-arc-lab/issues/11)
   tracks the tenant-policy decision and mandatory token/API retests.
+  The signed-in Edge/Entra session confirms the exact resource application is
+  Power BI Service: its identifiers include the Fabric API, activation is
+  Deactivated and user sign-in is No. The user approved enabling this one
+  tenant-wide application. The current portal exposes its Yes/No control as
+  disabled/read-only; no mutation or permission workaround has been performed.
+  The operator subsequently deferred Fabric testing in this lab. No further
+  tenant access or capacity purchase is requested. Enabling, token/API retests
+  and real ingestion remain NOT TESTED for a suitable environment/customer
+  prerequisite; the synthetic pipeline is not their replacement.
 
 ## Arc workaround experiments
 
@@ -132,5 +161,20 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
 - Explicit stable and preview Arc API reads expose no OIDC/workload-identity
   profile. Absence is not a verified enabled=false value; no speculative disable
   or identity override was applied.
-- Clean different-minor and different-region AML installation experiments are
-  in progress on separate disposable VMs. Their outcomes are not yet acceptance.
+- Both clean disposable experiments reproduced the installation failure:
+
+  | Case | Arc location | k3s | Arc agent | AML extension | Actual outcome |
+  |---|---|---|---|---|---|
+  | A: different Kubernetes minor | Sweden Central | 1.36.6+k3s1 | 1.39.3 | 1.1.115 | Incoming UserAssigned; identity controller/proxy/gateway crash-loop with Unknown cluster type |
+  | B: different Arc region | North Europe | 1.35.9+k3s1 | 1.39.3 | 1.1.115 | Same incoming value and constructor failure |
+
+  Case A explicitly reported workload identity Disabled; ARM extension identity
+  was SystemAssigned. Case B's VM remained in Sweden Central while its Arc
+  resource used North Europe. Case A was stopped while ARM still reported
+  Creating; that state is not a successful installation.
+- Full health/component evidence was retained privately. Both disposable cases'
+  resources were deleted and cleanup verified. The original cluster remains.
+  Following the agreed stop rule, no further speculative identity changes,
+  cluster replacements or agent downgrades are planned. One consolidated support
+  brief covers the original cluster and both failed isolation cases; it has not
+  been submitted to Microsoft.

@@ -42,14 +42,27 @@ private action log:
   resolution, then failed on missing mlflow. Environment v1 readback has null
   conda_file: the SDK omitted post-construction assignment. Fix is constructor
   input and immutable v2 registration/readback, not another storage grant.
+  Both are now verified: the real retry completed and registered model version
+  2. A serialization regression test covers the missing Conda specification.
+- P-DS source upload for the actual pipeline separately returned storage 403.
+  Owner granted Storage Blob Data Contributor only at the workspaceblobstore
+  container. This is an additional data-plane permission beyond workspace
+  AzureML Data Scientist, not evidence that AML-RG Contributor suffices.
+  Eligible and rejected cloud pipelines subsequently completed. Neither this
+  grant nor the training-compute grant widened the inference identity.
 - GitHub OIDC bootstrap: two federated credentials on the P-CI UAMI require
   userAssignedIdentities/federatedIdentityCredentials/write at that identity,
   for example Managed Identity Contributor. Managed Identity Operator alone
   does not grant that write. Repository Actions-secret creation separately
   requires GitHub repository permission, not Azure Owner. Credentials/secrets
-  are configured and read back. First actual train-authentication job failed;
-  production was skipped. The suppressed error must be made safely observable
-  before deciding whether any permission change is needed.
+  are configured and read back. Initial AADSTS700213 was traced through
+  boolean-only assertion comparisons to GitHub's enabled immutable-subject
+  policy. Its actual subject includes structured owner/repository IDs.
+  The two existing credentials' subjects were replaced, preserving issuer,
+  audience and train/prod boundaries, with no additional credential or role.
+  Actual run 45212597530 passed both P-CI Azure logins and workspace reads.
+  Production WAITING was observed before operator self-approval. This is not
+  independent review or a model-deployment acceptance.
 - Main ruleset creation requires GitHub repository Administration:write, not
   Azure Owner or AML Contributor. It requires PRs and the named GitHub Actions
   check with no bypass actors. Actual administrator direct-push and failed-check
@@ -190,7 +203,13 @@ immutable MCR image digest and the shared pinned dependency manifest.
 The existing workspace-scoped P-DS identity successfully submitted a genuine AML
 command job from inside the VNet. Only committed training source was archived;
 the real source SHA is injected as metadata. Submission returned Starting.
-Execution/model-registration acceptance is pending, not inferred from submission.
+The first execution exposed the distinct output-mount and environment defects
+described above. After their scoped corrections, command
+`musing_branch_g8hmb817q6` completed and registered `campaign-xgboost:2`.
+Two actual five-component synthetic pipelines also completed: an eligible
+registration and a controlled NOT_REGISTERED case without an extra version.
+Both used committed f563c2f source, environment 2 and data version 1. Their
+comparison fixture is not a deployed champion and their input is not Fabric.
 Managed compute is separate from the edge VM shutdown schedule.
 
 Local environment registration initially hit AzureCliCredential's ten-second
@@ -217,6 +236,20 @@ This error is not evidence of a Fabric service-principal allowlist problem;
 Fabric API admission/workspace permissions remain unverified behind it.
 No tenant settings, role grants, capacity purchases, existing-resource reuse,
 or business data access were performed for these probes.
+
+Subsequent user-assisted Edge/Entra inspection verified the resource application's
+identity through its Fabric API identifiers: Power BI Service, activation
+Deactivated, Enabled for users to sign-in No. The user explicitly approved
+enabling this one tenant-wide application. Its current Yes/No controls are
+disabled/read-only; no setting was changed. The portal states that editing
+requires Global Administrator, Cloud Application Administrator or Application
+Administrator. The specific reason this session is read-only was not verified;
+do not infer a role grant or bypass a permission barrier.
+The operator then explicitly deferred Fabric testing in this lab. Stop tenant
+enablement/privilege requests; no capacity purchase or alternate-tenant
+provisioning is authorized by that deferral. Issue 11 remains open as a deferred
+prerequisite. Identity/token retests, API admission and actual ingestion must
+eventually pass in a suitable environment; none is accepted here.
 
 OneLake Storage token acquisition succeeded, but an account-level HEAD returned
 405: reachability only, not a successful OneLake file-read permission test.

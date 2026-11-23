@@ -39,3 +39,6 @@ jobs:
         run: python -m pytest -q tests --ignore=tests/test_ci_contract.py
       - name: Committed feature contract and offline AML YAML schemas
         run: python -m pytest -q tests/test_ci_contract.py -k "not python_syntax_and_indentation"
+      - name: OIDC bootstrap boundaries (mocked, no Azure access)
+        shell: pwsh
+        run: .\tests\Test-LabOidc.ps1
