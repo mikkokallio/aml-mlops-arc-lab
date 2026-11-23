@@ -87,3 +87,37 @@ lab requires zero PR approvals because GitHub prohibits approving one's own PR.
 Independent code review is therefore not demonstrated. The separate production
 environment gate permits recorded lab self-approval; see measured evidence for
 its execution status.
+
+## GitHub OIDC bootstrap
+
+After the identity deployment outputs exist in the ignored local directory,
+the authorized identity administrator runs:
+
+```powershell
+.\scripts\admin\Initialize-LabOidc.ps1
+```
+
+The helper reads this lab repository's actual GitHub subject policy and stable
+owner/repository IDs. It supports explicitly reported immutable or legacy
+default subjects and rejects unknown/custom policy. Do not copy a name-only
+subject from an older tutorial into a repository using immutable subjects.
+
+For the exact previously created train/prod legacy credentials, an explicitly
+requested correction is:
+
+```powershell
+.\scripts\admin\Initialize-LabOidc.ps1 -ReplaceLegacySubjects
+```
+
+Replacement mode preserves issuer, audience, environment restrictions and
+unrelated credentials; it cannot create a missing credential. Writes require
+federatedIdentityCredentials/write at the P-CI identity, not merely Managed
+Identity Operator or AML-RG Contributor. Attempts/results stay in the private
+admin log. Mocked boundary/idempotency tests also run in required PR CI:
+
+```powershell
+.\tests\Test-LabOidc.ps1
+```
+
+The actual OIDC/approval probe has passed, but does not deploy a model.
+Fabric integration is explicitly deferred in this lab and remains untested.
