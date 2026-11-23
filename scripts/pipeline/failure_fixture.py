@@ -4,6 +4,8 @@ Run at the root of the registered f563c2f code asset with campaign-training:2.
 This module also supports base64/compile/exec bootstrapping without ``__file__``.
 Use a fresh output directory per invocation. Both cases must exit nonzero;
 neither is a successful production pipeline execution.
+The unchanged evaluator's MLflow run is FINISHED before its quality gate raises;
+the original gate exception must fail the enclosing AML command job.
 """
 
 import argparse
@@ -84,18 +86,22 @@ def quality_failure(data: Path, output: Path, data_version: str, identity: dict)
     except RuntimeError as error:
         if not str(error).startswith("QUALITY_GATE_FAILED"):
             raise
-        # Core evaluate persists its decision before raising, after closing its run.
-        # Attach fixture provenance and mark that real evaluation run failed too.
+        # AML cannot change a completed run to FAILED. Add provenance without
+        # reopening it, and never let metadata failures mask the original gate.
         evaluation_run = mlflow.last_active_run()
         if evaluation_run is None:
             raise
-        with mlflow.start_run(run_id=evaluation_run.info.run_id):
-            mlflow.set_tags({**identity, "fixture_stage": "evaluation"})
-            mlflow.log_artifact(str(output / "fixture.json"))
+        try:
+            client = mlflow.tracking.MlflowClient()
+            for key, value in {**identity, "fixture_stage": "evaluation"}.items():
+                client.set_tag(evaluation_run.info.run_id, key, value)
+            client.log_artifact(evaluation_run.info.run_id, str(output / "fixture.json"))
             decision = steps.read_json(evaluation / "decision.json")
             print(json.dumps(steps.read_json(training / "result.json"), allow_nan=False), flush=True)
             print(json.dumps(decision, allow_nan=False), flush=True)
-            raise
+        except Exception as metadata_error:
+            print(f"FIXTURE_PROVENANCE_WARNING: {type(metadata_error).__name__}", flush=True)
+        raise
     raise RuntimeError("FIXTURE_EXPECTATION_FAILED: unchanged quality gate did not fail.")
 
 

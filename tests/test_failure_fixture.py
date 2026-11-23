@@ -6,6 +6,9 @@ import mlflow
 import numpy as np
 import pandas as pd
 import pytest
+from mlflow.entities import RunStatus
+from mlflow.exceptions import MlflowException
+from mlflow.store.tracking.file_store import FileStore
 from mlflow.tracking import MlflowClient
 
 from scripts.pipeline import failure_fixture as fixture
@@ -51,7 +54,32 @@ def test_execution_failure_survives_base64_bootstrap(tmp_path: Path, tracking) -
     assert not list(client.search_registered_models())
 
 
-def test_real_bad_model_fails_unchanged_gate_and_logs_decision(tmp_path: Path, tracking) -> None:
+@pytest.mark.parametrize("provenance_outage", [False, True])
+def test_real_bad_model_fails_unchanged_gate_and_logs_decision(
+    tmp_path: Path, tracking, monkeypatch, provenance_outage: bool,
+) -> None:
+    # AML terminal states are immutable, unlike the default local file store.
+    terminal_states = {}
+    update_run_info = FileStore.update_run_info
+
+    def immutable_terminal_status(store, run_id, run_status, end_time, run_name):
+        if run_status is not None and RunStatus.is_terminated(run_status):
+            status = RunStatus.to_string(run_status)
+            if run_id in terminal_states and terminal_states[run_id] != status:
+                raise MlflowException("Cannot set run to multiple terminal states", "BAD_REQUEST")
+            terminal_states[run_id] = status
+        return update_run_info(store, run_id, run_status, end_time, run_name)
+
+    monkeypatch.setattr(FileStore, "update_run_info", immutable_terminal_status)
+    if provenance_outage:
+        set_tag = MlflowClient.set_tag
+
+        def fail_evaluation_provenance(client, run_id, key, value, **kwargs):
+            if key == "fixture_stage" and value == "evaluation":
+                raise RuntimeError("Controlled provenance outage")
+            return set_tag(client, run_id, key, value, **kwargs)
+
+        monkeypatch.setattr(MlflowClient, "set_tag", fail_evaluation_provenance)
     client, experiment_id = tracking
     data = tmp_path / "source"
     data.mkdir()
@@ -59,13 +87,16 @@ def test_real_bad_model_fails_unchanged_gate_and_logs_decision(tmp_path: Path, t
     output = tmp_path / "quality"
     contract_hash = steps.digest(fixture.CONTRACT)
     policy_hash = steps.digest(fixture.POLICY)
-    with pytest.raises(RuntimeError, match="^QUALITY_GATE_FAILED"):
+    with pytest.raises(RuntimeError, match="^QUALITY_GATE_FAILED") as failure:
         fixture.main([
             "--case", "quality", "--data", str(data), "--fixture-git-sha", FIXTURE_SHA,
             "--output", str(output),
         ])
     result = steps.read_json(output / "training" / "result.json")
     decision = steps.read_json(output / "evaluation" / "decision.json")
+    assert str(failure.value) == decision["reason"]
+    assert any(frame.name == "evaluate" for frame in failure.traceback)
+    assert mlflow.active_run() is None
     provenance = steps.read_json(output / "fixture.json")
     assert result["component_source_sha"] == provenance["component_source_sha"] == fixture.COMPONENT_SOURCE_SHA
     assert result["fixture_git_sha"] == provenance["fixture_git_sha"] == FIXTURE_SHA
@@ -98,9 +129,12 @@ def test_real_bad_model_fails_unchanged_gate_and_logs_decision(tmp_path: Path, t
     np.testing.assert_array_equal(saved.predict(holdout[features]), logged.predict(holdout[features]))
     runs = client.search_runs([experiment_id])
     assert len(runs) == 2
-    evaluation = next(run for run in runs if run.data.tags["fixture_stage"] == "evaluation")
-    assert evaluation.info.status == "FAILED"
+    evaluation = next(run for run in runs if "promotion_reason" in run.data.tags)
+    assert evaluation.info.status == "FINISHED"
     assert client.get_run(result["run_id"]).info.status == "FINISHED"
+    assert terminal_states == {run.info.run_id: "FINISHED" for run in runs}
+    if not provenance_outage:
+        assert evaluation.data.tags["fixture_stage"] == "evaluation"
     assert evaluation.data.tags["component_source_sha"] == fixture.COMPONENT_SOURCE_SHA
     assert evaluation.data.tags["fixture_git_sha"] == FIXTURE_SHA
     for group, metrics in decision["metrics"].items():
