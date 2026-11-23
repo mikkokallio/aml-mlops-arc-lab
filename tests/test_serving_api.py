@@ -233,6 +233,44 @@ def test_probe_records_independent_results_once(monkeypatch, configured, caplog)
     assert "package_index_network_error index=pypi" in caplog.text
 
 
+def test_readiness_event_includes_provenance_manifest_and_independent_probe_errors(
+    monkeypatch, configured, caplog
+):
+    calls = []
+
+    def denied(url, timeout):
+        calls.append((url, timeout))
+        if "pypi.org" in url:
+            raise URLError("private-network-detail")
+        raise TimeoutError("private-network-detail")
+
+    monkeypatch.setenv("PROBE_PACKAGE_INDEX", "1")
+    monkeypatch.setenv("SOURCE_GIT_SHA", "image-source-commit")
+    monkeypatch.setenv("MODEL_PROVENANCE", "campaign-m3-synthetic-proof:1")
+    monkeypatch.setattr(score, "urlopen", denied)
+    client = score.create_app().test_client()
+    events = [
+        json.loads(record.getMessage())
+        for record in caplog.records
+        if record.name == score.LOGGER.name and record.getMessage().startswith('{"event":')
+    ]
+    assert len(events) == 1
+    event = events[0]
+    assert event.pop("event") == "serving_ready"
+    assert event == client.get("/health").json
+    assert event["source_git_sha"] == "image-source-commit"
+    assert event["model_provenance"] == "campaign-m3-synthetic-proof:1"
+    assert event["model_manifest"]["files"]
+    assert event["package_index_probe"] == {
+        "pypi": {"status": "blocked", "error": "URLError"},
+        "pythonhosted": {"status": "blocked", "error": "TimeoutError"},
+    }
+    assert calls == [(url, 5) for url in score.PACKAGE_INDEX_URLS.values()]
+    assert "package_index_network_error index=pypi error=URLError" in caplog.text
+    assert "package_index_network_error index=pythonhosted error=TimeoutError" in caplog.text
+    assert "private-network-detail" not in caplog.text
+
+
 def test_signature_mismatch_fails_startup(monkeypatch, configured):
     original = score.Model.load
 

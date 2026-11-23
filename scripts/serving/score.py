@@ -132,6 +132,8 @@ def input_frame(payload: object, columns: list[str], types: list[str]) -> pd.Dat
 
 
 def create_app() -> Flask:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    LOGGER.setLevel(logging.INFO)
     version = os.environ.get("MODEL_VERSION", "")
     if version not in {"1", "2"}:
         raise ValueError("MODEL_VERSION must be explicitly set to 1 or 2.")
@@ -160,7 +162,7 @@ def create_app() -> Flask:
         health["package_index_probe"] = probe_package_indexes()
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024
-    LOGGER.info("model_ready version=%s source=%s manifest_sha256=%s", version, source, manifest["sha256"])
+    LOGGER.info("%s", json.dumps({"event": "serving_ready", **health}, sort_keys=True, allow_nan=False))
 
     @app.get("/health")
     def ready():
@@ -197,5 +199,4 @@ def create_app() -> Flask:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     create_app().run(host="0.0.0.0", port=8080)

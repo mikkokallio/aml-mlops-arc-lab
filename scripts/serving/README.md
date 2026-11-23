@@ -30,6 +30,9 @@ model-file paths, sizes and SHA256 hashes, and an aggregate SHA256 of the compac
 sorted-key JSON file manifest. Hashes cover the entire selected model directory
 before loading. `SOURCE_GIT_SHA` (or `LAB_GIT_SHA`) and `MODEL_PROVENANCE` provide
 explicit non-secret provenance labels. Never put secrets in these labels.
+Startup emits the same safe snapshot as a single JSON `serving_ready` log event,
+including both package-index results, so deployment container logs can supply
+this evidence even when `/health` is only accessible to platform probes.
 
 `PROBE_PACKAGE_INDEX=1` enables two startup-only HTTPS probes (five-second
 timeout each): `pypi.org/simple/pip/` and `files.pythonhosted.org/`. Health reports
