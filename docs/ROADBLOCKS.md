@@ -121,6 +121,17 @@ private action log:
   initially returned 401 after ARM key readback changed. The verified test waits
   for new-key success and stale-key 401, checking unchanged-secondary scoring
   while waiting; observed convergence was 10.350 seconds, not an SLA.
+- Native AKS control experiment: the same current AML extension 1.1.115
+  installed successfully on private managed-identity AKS 1.35.9. AML compute
+  attachment, registered-model deployment and actual private 100-row REST
+  scoring passed with zero reference error. No identity overrides, extension
+  downgrades or pod patches were needed. This narrows the original blocker to
+  the measured Arc path; it does not establish its product root cause.
+- The installed `az aks command invoke` prints its command-start/finish line and
+  logs as text even with the default JSON output option. The first parent
+  JSON parse failed after an actual exitcode=0 node/namespace command. Checking
+  the actual command exit-code line avoids misreporting successful cluster work
+  as a cloud failure.
 
 | Persona / component | Actual finding | Minimum action and scope | Status |
 |---|---|---|---|

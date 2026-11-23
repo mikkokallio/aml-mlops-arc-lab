@@ -286,11 +286,44 @@ training upload from a hosted runner, independent approval or Arc acceptance.
 The temporary build identity's measured artifact-container and image-push
 permissions were revoked after use. The linked inference-UAMI assignment
 permission and registry private-link SKU prerequisite are explicitly audited.
-Cleanup must be verified before progressing to the next compute target.
+The managed endpoint (including both deployments) and temporary inference alert
+were deleted and independently read back HTTP404 before AKS was created.
+Registry private connections were independently empty, then the original Basic
+SKU/public-enabled/admin-disabled baseline was restored and read back.
 
-Remaining smoke targets: native AKS, separate VM container, ACI and Container
-Apps are **NOT YET TESTED**. Their future results must not be inferred from the
-working managed endpoint or portable API's local tests.
+### Native AML on AKS: REST passed
+
+A disposable private AKS 1.35.9 cluster used one Standard_D4s_v5 node, the Free
+control-plane tier and an isolated subnet with the existing NAT gateway. Its
+node was Ready with a private address and no external IP. Local accounts remain
+enabled as required by the documented AML extension prerequisite; this is not
+a production AKS-hardening acceptance.
+
+The current AML extension **1.1.115 installed successfully** without identity
+overrides, downgrades, pod patches or Arc attachment. Actual identity/inference
+controller pods were Running, the inference router was private NodePort, and
+the existing `lab-cpu` InstanceType was installed. AML Kubernetes compute
+`aks-smoke` attached successfully using the existing read-only inference UAMI
+and a separate inference namespace.
+
+Endpoint `amlarclab-aks-1123`, deployment blue, used registered synthetic model
+2 and the same immutable custom serving environment as the managed green.
+From the separate private worker, P-DS retrieved endpoint metadata/keys and
+issued an actual directed REST request through the AML router: **HTTP200,
+100 finite predictions, max absolute error 0**, rtol/atol 0.00001 against the
+original registered-model build reference.
+
+This proves native AML-on-AKS deployment and real REST scoring, not just image
+portability. Infrastructure, attachment and deployment used the authorized
+bootstrap operator; restricted-persona deployment is not implicitly passed.
+HTTP was confined to VNet-only NodePort for this disposable lab: production TLS,
+AKS promotion/rollback and GitHub release automation are not tested.
+Cleanup is underway; no next serving target may be created until absence is
+verified. The actual retail Linux node rate recorded was EUR0.1831/hour;
+that is not a measured invoice.
+
+Separate VM container, ACI and Container Apps are **NOT YET TESTED**. Their
+future results must not be inferred from the working AML targets or local tests.
 
 ## Arc workaround experiments
 
