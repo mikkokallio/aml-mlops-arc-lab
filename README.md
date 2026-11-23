@@ -146,3 +146,40 @@ artifacts are not read by this workflow.
 [Actual run 45230564606](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45230564606)
 passed and all five AML child jobs independently read back Completed.
 See the measured-results document for exact provenance and remaining boundaries.
+
+## Azure-only training-failure alerts
+
+The operator chose Azure-only alert verification, with no email, webhook or
+action-group receiver. Customer setup must explicitly ask notification and
+response-owner preferences instead of inheriting that lab choice.
+
+The monitoring templates reference only the existing lab AML/Log Analytics
+workspaces. They add a separate diagnostic setting, leaving tenant-governance
+settings untouched:
+
+```powershell
+.\scripts\Deploy-Group.ps1 -ResourceGroup rg-amlarclab-ml `
+  -Template infra\monitoring\diagnostics.bicep -DeploymentName lab-training-diagnostics
+```
+
+Verify that the destination accepts an `AmlRunStatusChangedEvent` query before
+deploying the alert; query validation is deliberately not skipped:
+
+```powershell
+.\scripts\Deploy-Group.ps1 -ResourceGroup rg-amlarclab-ml `
+  -Template infra\monitoring\failed-job-alert.bicep -DeploymentName lab-training-failed-alert
+```
+
+The controlled `failure_fixture.py` command supports execution and quality
+failure cases. Run it in an AML command job with the registered f563 code root,
+environment 2, mounted data 2 and a real committed fixture SHA. Base64/compile/exec
+bootstrapping is supported so the fixture can be supplied through the ARM command
+without source upload. The quality case saves/logs a deliberately bad constant
+model and runs the unchanged evaluator/policy; it logs metrics/decision and
+raises QUALITY_GATE_FAILED. Neither case registers a model.
+
+Both AML jobs must actually fail. Acceptance additionally requires ingested
+failure events and Fired alert instances matching both exact RunIds, not just
+successful template deployment. A passing negative-test verification must never
+be described as successful production training. External notification delivery
+is a separate, untested boundary in this Azure-only lab.
