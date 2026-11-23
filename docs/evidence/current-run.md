@@ -393,14 +393,15 @@ The app's external ingress means reachable outside the app/environment within
 the VNet, not public Internet ingress: the environment itself is internal.
 This is private HTTPS portable serving without app authentication, not AML
 deployment management, production authorization or release-workflow acceptance.
-The app and generated infrastructure resource group are GET404. The environment
-record remains ScheduledForDelete after the first bounded 20-minute cleanup
+The app and generated infrastructure resource group returned GET404 first. The
+environment record remained ScheduledForDelete after the first bounded 20-minute cleanup
 wait; a second exact DELETE returned 202 with its operation still pending.
 Actual subnet readback showed no service-association links or IP configurations,
 so only the empty owned ACA subnet was deleted and GET404 verified. The shared
 original VNet was preserved; advice to delete an entire associated VNet was not
-followed. The remaining control-plane record must not be called fully cleaned
-until its own GET404 is observed.
+followed. The subsequent bounded follow-up also observed **GET404 for the
+environment itself** and reverified app/generated RG/subnet absence. ACA
+cleanup is now complete, including the delayed control-plane record.
 
 ### Matrix boundaries and retained replay assets
 

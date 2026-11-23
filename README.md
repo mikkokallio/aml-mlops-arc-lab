@@ -6,8 +6,8 @@ through Azure Machine Learning to Arc-enabled k3s.
 **Current status: training and a private AML managed-online serving lifecycle
 have passed within the recorded boundaries. Arc scoring remains blocked;
 Fabric is explicitly deferred. All five alternative-target serving tests passed.
-Temporary serving compute and the private client worker are removed; the
-inactive ACA environment record is still scheduled for deletion.**
+All temporary serving targets, their owned infrastructure and the private
+client worker are removed, with deletion verified.**
 
 ## Current acceptance target
 
