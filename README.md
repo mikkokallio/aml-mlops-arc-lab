@@ -205,3 +205,11 @@ and its exact RunId in
 Neither an empty result from an incorrect filter nor an unrelated Fired alert
 establishes the outcome. On Windows, preserve the complete URL's query string
 when passing it through the Azure CLI wrapper.
+
+Actual cloud verification passed for execution job
+`aml-alert-execution-52b2cc0` and corrected quality job
+`aml-alert-quality-b36ee32`: intended failure reasons, persisted quality evidence,
+ingested failure events and exact Fired alerts were verified. Observed delays
+were 97.230 s and 50.185 s respectively; these are not an SLA.
+See [measured results](docs/evidence/current-run.md#azure-only-training-failure-alerts).
+External delivery and inference monitoring remain untested.

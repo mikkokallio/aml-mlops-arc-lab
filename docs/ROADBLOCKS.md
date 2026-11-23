@@ -88,8 +88,10 @@ private action log:
 - The initial quality fixture tried to change an already FINISHED evaluation
   run to FAILED. Unlike the local MLflow file store, AML rejects multiple
   terminal states; its BAD_REQUEST masked the original QUALITY_GATE_FAILED.
-  The fixture must preserve the original exception without reopening the
-  completed run. The unchanged f563 evaluator finishes metrics evaluation
+  The corrected fixture preserves the original exception without reopening the
+  completed run; a real rerun verified the final QUALITY_GATE_FAILED and Fired
+  alert. An immutable-terminal regression covers the masking bug.
+  The unchanged f563 evaluator finishes metrics evaluation
   before raising the quality decision: FINISHED evaluation metadata and a
   Failed enclosing AML command are distinct, valid outcomes.
 
