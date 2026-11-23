@@ -136,20 +136,44 @@ def main() -> None:
         if original.primary_key != keys.primary_key:
             raise ValueError("Primary key changed concurrently before this test's rotation.")
         proof["secondary_after"] = score(keys.secondary_key, "1")
-        proof["new_primary_after"] = score(refreshed.primary_key, "1")
-        deadline = time.monotonic() + 120
+        started = time.monotonic()
+        deadline = started + 180
+        secondary_probes = 1
+        payload = json.loads((args.reference / "request-1.json").read_text())
         while True:
+            current = requests.post(
+                endpoint.scoring_uri,
+                headers={"Authorization": f"Bearer {refreshed.primary_key}"},
+                json=payload,
+                timeout=60,
+            )
             stale = requests.post(
                 endpoint.scoring_uri,
                 headers={"Authorization": f"Bearer {keys.primary_key}"},
-                json=json.loads((args.reference / "request-1.json").read_text()),
+                json=payload,
                 timeout=60,
             )
-            if stale.status_code == 401:
+            score(keys.secondary_key, "1")
+            secondary_probes += 1
+            if current.status_code == 200 and stale.status_code == 401:
+                proof["new_primary_after"] = compare_predictions(
+                    json.loads((args.reference / "reference-1.json").read_text()),
+                    current.json(),
+                )
                 proof["stale_primary_http_status"] = 401
+                proof["observed_propagation_seconds"] = round(time.monotonic() - started, 3)
+                proof["successful_secondary_probes"] = secondary_probes
                 break
-            if stale.status_code != 200 or time.monotonic() >= deadline:
-                raise ValueError(f"Rotated-out key was not rejected: HTTP {stale.status_code}")
+            if (
+                current.status_code not in (200, 401)
+                or stale.status_code not in (200, 401)
+                or time.monotonic() >= deadline
+            ):
+                raise ValueError(
+                    "Key rotation did not converge: "
+                    f"new HTTP {current.status_code}, stale HTTP {stale.status_code}"
+                )
+            print("Waiting for data-plane key propagation; secondary scoring verified.", flush=True)
             time.sleep(10)
     elif args.step == "negative":
         request_id = "aml-serving-matrix-negative-1123"
