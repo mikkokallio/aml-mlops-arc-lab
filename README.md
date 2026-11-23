@@ -146,3 +146,70 @@ artifacts are not read by this workflow.
 [Actual run 45230564606](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45230564606)
 passed and all five AML child jobs independently read back Completed.
 See the measured-results document for exact provenance and remaining boundaries.
+
+## Azure-only training-failure alerts
+
+The operator chose Azure-only alert verification, with no email, webhook or
+action-group receiver. Customer setup must explicitly ask notification and
+response-owner preferences instead of inheriting that lab choice.
+
+The monitoring templates reference only the existing lab AML/Log Analytics
+workspaces. They add a separate diagnostic setting, leaving tenant-governance
+settings untouched:
+
+```powershell
+.\scripts\Deploy-Group.ps1 -ResourceGroup rg-amlarclab-ml `
+  -Template infra\monitoring\diagnostics.bicep -DeploymentName lab-training-diagnostics
+```
+
+Verify that the destination accepts an `AmlRunStatusChangedEvent` query before
+deploying the alert; query validation is deliberately not skipped:
+
+```powershell
+.\scripts\Deploy-Group.ps1 -ResourceGroup rg-amlarclab-ml `
+  -Template infra\monitoring\failed-job-alert.bicep -DeploymentName lab-training-failed-alert
+```
+
+The controlled `failure_fixture.py` command supports execution and quality
+failure cases. Run it in an AML command job with the registered f563 code root,
+environment 2, mounted data 2 and a real committed fixture SHA. Base64/compile/exec
+bootstrapping is supported so the fixture can be supplied through the ARM command
+without source upload. The quality case saves/logs a deliberately bad constant
+model and runs the unchanged evaluator/policy; it logs metrics/decision and
+raises QUALITY_GATE_FAILED. Neither case registers a model.
+
+The unchanged evaluator finishes its MLflow metrics run before raising a failed
+quality decision. That evaluation run can legitimately be FINISHED while the
+enclosing AML command job is Failed. Do not reopen it or force another terminal
+status: AML rejects that transition and masks the intended quality-gate error.
+
+Both AML jobs must actually fail for their intended reasons, verified from logs.
+Acceptance additionally requires ingested
+failure events and Fired alert instances matching both exact RunIds, not just
+successful template deployment. A passing negative-test verification must never
+be described as successful production training. External notification delivery
+is a separate, untested boundary in this Azure-only lab.
+
+For readback, query the owned Log Analytics workspace for the exact RunIds and
+`Status == 'Failed'`. ARM normalized `logAnalyticsDestinationType` to null in
+this lab, but actual events arrived in `AmlRunStatusChangedEvent`; configuration
+readback alone does not establish their destination or successful ingestion.
+
+List actual alert instances through the owned resource group's
+`Microsoft.AlertsManagement/alerts` API (2019-03-01), using `includeContext=true`,
+`timeRange=1h` and `pageCount=25`, following any `nextLink`. The `alertRule` filter
+requires the **full scheduled-query-rule ARM ID**, not `aml-training-failed`.
+For each expected job, verify `properties.essentials.monitorCondition == 'Fired'`
+and its exact RunId in
+`properties.context.context.condition.allOf[].dimensions[]`.
+Neither an empty result from an incorrect filter nor an unrelated Fired alert
+establishes the outcome. On Windows, preserve the complete URL's query string
+when passing it through the Azure CLI wrapper.
+
+Actual cloud verification passed for execution job
+`aml-alert-execution-52b2cc0` and corrected quality job
+`aml-alert-quality-b36ee32`: intended failure reasons, persisted quality evidence,
+ingested failure events and exact Fired alerts were verified. Observed delays
+were 97.230 s and 50.185 s respectively; these are not an SLA.
+See [measured results](docs/evidence/current-run.md#azure-only-training-failure-alerts).
+External delivery and inference monitoring remain untested.

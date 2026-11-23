@@ -178,6 +178,59 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   and real ingestion remain NOT TESTED for a suitable environment/customer
   prerequisite; the synthetic pipeline is not their replacement.
 
+## Azure-only training-failure alerts
+
+**PASSED: real execution failure and real quality-gate failure, ingested events
+and exact per-RunId Fired alerts.** These are successful negative tests, not
+successful production training. All times below are UTC on 23 November 2026.
+
+| Case / actual AML job | Failed event | Fired alert | Observed delay |
+|---|---|---|---|
+| Execution: `aml-alert-execution-52b2cc0` | 18:29:40.554 | 18:31:17.784 | 97.230 s |
+| Corrected quality: `aml-alert-quality-b36ee32` | 19:03:23.649 | 19:04:13.835 | 50.185 s |
+
+- Private job logs confirm the execution case's CONTROLLED_EXECUTION_FAILURE
+  and the corrected quality case's final QUALITY_GATE_FAILED, with no masking
+  BAD_REQUEST. Both enclosing AML command jobs are Failed.
+- The quality fixture fitted, saved, logged and reloaded a deliberately bad
+  constant model against real synthetic data version 2. The unchanged f563
+  evaluator/policy produced overall MAE 986.595207 and 1-49/50+ slice MAEs
+  985.623476/987.872989, failing the absolute 2.0 thresholds. The persisted
+  ineligible decision, metrics logged before failure, policy/features,
+  actual model URI and source/data provenance were verified privately.
+  Registry readback still lists only synthetic-proof model versions 1 and 2.
+- Execution fixture SHA: 52b2cc08a44594d4b3b596ec0198634eb175df21.
+  Corrected quality fixture SHA: b36ee32f653933f467086e97ce2772cc257dcf60.
+  Both used registered core source
+  f563c2fca1d62a6f9a4d209ca5be44d70b65de83, environment 2 and managed compute.
+  [Required CI for the correction](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45244054047)
+  passed.
+- The first quality fixture exposed a real backend difference: AML rejects
+  changing an already FINISHED evaluation run to another terminal state.
+  That attempted transition masked the quality-gate error. The correction
+  preserves the original exception without reopening the run; an immutable-
+  terminal regression catches the original bug. The evaluator's metrics run
+  is honestly FINISHED while the enclosing AML command is Failed.
+- A separate lab-owned diagnostic setting forwards only
+  AmlRunStatusChangedEvent into the owned Log Analytics workspace. ARM returned
+  null for logAnalyticsDestinationType despite the requested Dedicated value;
+  actual rows, not that property, establish the resource-specific table.
+  The query-validated enabled rule produced a distinct Sev2 Fired alert for
+  each exact RunId, with count 1 greater than threshold 0.
+  The alertRule API filter requires the full scheduled-query-rule ARM ID.
+- No action-group receivers were configured. No potentially applicable enabled
+  inherited AddActionGroups rules were found. Existing governance diagnostics
+  and their external workspace were untouched. **External notification delivery
+  is NOT TESTED**, as explicitly chosen by the operator; customer rollout must
+  collect notification/response-owner preferences.
+- No role grants or public-network relaxations were added. Private artifact
+  verification temporarily used the original VM, restored and verified
+  deallocated with its shutdown schedule unchanged. Exact operations and
+  permissions are in the private action log and [roadblock register](../ROADBLOCKS.md).
+  Monitoring execution used the authorized Owner; restricted-persona monitoring
+  acceptance is not claimed. These two measured delays are not a delivery SLA
+  or inference-monitoring acceptance.
+
 ## Arc workaround experiments
 
 - Original-cluster Flux installation returned ARM Succeeded; Helm release is

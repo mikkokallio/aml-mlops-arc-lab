@@ -68,6 +68,32 @@ private action log:
   check with no bypass actors. Actual administrator direct-push and failed-check
   merge attempts were rejected. Zero required PR reviews is documented because
   this lab has one person; independent review is not claimed.
+- Azure-only training monitoring adds a separate diagnostic setting on the lab
+  AML workspace and a scheduled-query rule in the same ML RG, targeting only
+  the owned Log Analytics workspace. Deployment requires
+  Microsoft.Insights/diagnosticSettings/write on the AML workspace,
+  Microsoft.Insights/scheduledQueryRules/write and deployment permissions in
+  the ML RG, plus access to the destination workspace. Query/alert readback
+  requires Log Analytics query access and Microsoft.AlertsManagement/alerts/read.
+  These are not Owner-only role-assignment operations. Actual execution used
+  the authorized Owner, not a restricted monitoring-persona drill; no new
+  role grants were made. Existing governance diagnostics and their external
+  workspace were neither changed nor queried.
+- Private negative-test artifact verification used existing P-DS access from
+  the lab VM, temporarily starting it and restoring deallocated state without
+  changing its shutdown schedule. The operator's VM read/start, runCommand/action
+  and deallocate/action permissions are needed at that edge VM; Contributor
+  on the ML RG alone does not cover it. These power/readback actions are
+  individually recorded in the private action log.
+- The initial quality fixture tried to change an already FINISHED evaluation
+  run to FAILED. Unlike the local MLflow file store, AML rejects multiple
+  terminal states; its BAD_REQUEST masked the original QUALITY_GATE_FAILED.
+  The corrected fixture preserves the original exception without reopening the
+  completed run; a real rerun verified the final QUALITY_GATE_FAILED and Fired
+  alert. An immutable-terminal regression covers the masking bug.
+  The unchanged f563 evaluator finishes metrics evaluation
+  before raising the quality decision: FINISHED evaluation metadata and a
+  Failed enclosing AML command are distinct, valid outcomes.
 
 | Persona / component | Actual finding | Minimum action and scope | Status |
 |---|---|---|---|
