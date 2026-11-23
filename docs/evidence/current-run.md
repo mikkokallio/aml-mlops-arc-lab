@@ -79,13 +79,22 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   AML command job with committed-source provenance. It reached Running, then
   failed before user code while mounting writable workspaceblobstore output.
   Its separate training-compute identity had no storage data role. Owner granted
-  Storage Blob Data Contributor on that exact container; successful retry is
-  still required. The read-only inference identity was not widened.
+  Storage Blob Data Contributor on that exact container. Retry entered user
+  code, proving that mount blocker cleared, but failed because mlflow was absent.
+  Actual environment v1 has null conda_file: assigning it after SDK construction
+  did not serialize dependencies. Constructor-based registration of immutable
+  v2 is being corrected and tested. Training-job acceptance remains unpassed.
+  The read-only inference identity was not widened.
 - Five-component synthetic pipeline implementation passes local contracts and
   SDK YAML validation. Combined training, scoring, CI and pipeline suite:
-  23 passed. Local model registration is not cloud-pipeline acceptance.
+  23 passed. CI schema coverage was then extended: all eight endpoint,
+  deployment, pipeline and component cases pass with network access denied.
+  Local model registration is not cloud-pipeline acceptance.
 - GitHub OIDC federated credentials and repository secrets are configured.
-  Actual Actions token exchange and production-approval behavior remain untested.
+  The [first actual Actions run](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45205044415)
+  failed in train authentication; production was skipped and no approval made.
+  Suppressed Azure diagnostics prevent a verified cause. A narrowly redacted
+  diagnostic correction is being prepared; token exchange is not accepted.
 - Azure-free GitHub CI baseline [passed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197315333).
   A [real leaking-feature PR](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/9)
   [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
