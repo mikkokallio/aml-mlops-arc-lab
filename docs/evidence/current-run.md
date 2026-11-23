@@ -78,8 +78,13 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
 - Immutable-base-image training environment registered. P-DS submitted a real
   AML command job with committed-source provenance; returned Starting.
   Execution acceptance is still pending.
-- Azure-free GitHub CI/Dependabot implementation and focused contract tests
-  committed. Actual Actions and leaking-feature PR verification are in progress.
+- Azure-free GitHub CI baseline [passed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197315333).
+  A [real leaking-feature PR](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/9)
+  [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
+  specifically because measured_outcome is forbidden by the feature contract.
+  The PR was closed without merging and its temporary branch deleted.
+  Syntax/indentation checks are not a full Python linter; main-branch rule
+  enforcement and OIDC/release approval are separate checks.
 - Fabric ARM capacity discovery passed; Fabric API token acquisition failed
   for operator and P-CI with AADSTS500014 (resource service principal disabled).
   Requires Entra-admin investigation; do not misclassify it as missing capacity
