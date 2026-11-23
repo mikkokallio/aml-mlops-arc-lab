@@ -1,0 +1,89 @@
+name: Train registered synthetic pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: train-registered-pipeline
+  cancel-in-progress: false
+
+jobs:
+  train:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    name: P-CI reference-only managed training
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: train
+    outputs:
+      aml_job_name: ${{ steps.train.outputs.aml_job_name }}
+    env:
+      AZURE_CORE_COLLECT_TELEMETRY: "false"
+      AZURE_CORE_ONLY_SHOW_ERRORS: "true"
+    steps:
+      - name: Set up orchestration Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12.3"
+      - name: Install pinned Azure CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet "azure-cli==2.93.0"
+          [[ "$(az version --query '"azure-cli"' --output tsv)" == "2.93.0" ]]
+      - name: Authenticate P-CI and run reference-only training
+        id: train
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AML_WORKSPACE_RESOURCE_ID: ${{ secrets.AML_WORKSPACE_RESOURCE_ID }}
+          AZURE_CONFIG_DIR: ${{ github.workspace }}/.local/registered-pipeline/azure
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          state_dir="$GITHUB_WORKSPACE/.local/registered-pipeline"
+          cleanup() {
+            az logout >/dev/null 2>&1 || true
+            rm -rf "$state_dir"
+          }
+          trap cleanup EXIT
+          mkdir -p "$AZURE_CONFIG_DIR"
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AML_WORKSPACE_RESOURCE_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required repository secret: $name"; exit 1
+            fi
+          done
+          # Fetch only the orchestrator at this dispatch SHA, never training code or component folders.
+          if ! curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/contents/scripts/pipeline/submit_registered_pipeline.py?ref=$GITHUB_SHA" \
+            -o "$state_dir/submit_registered_pipeline.py" 2>"$state_dir/helper-download.stderr"; then
+            echo "::error::Could not fetch the pinned orchestrator; response details suppressed."; exit 1
+          fi
+          if ! token="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" \
+            2>"$state_dir/oidc.stderr" | jq -er '.value')"; then
+            echo "::error::GitHub OIDC token acquisition failed; details suppressed."; exit 1
+          fi
+          echo "::add-mask::$token"
+          if ! az login --service-principal --username "$AZURE_CLIENT_ID" \
+            --tenant "$AZURE_TENANT_ID" --federated-token "$token" \
+            --output none --only-show-errors > /dev/null 2>"$state_dir/login.stderr"; then
+            unset token
+            echo "::error::P-CI OIDC login failed; identifiers and response details suppressed."; exit 1
+          fi
+          unset token
+          if ! az account set --subscription "$AZURE_SUBSCRIPTION_ID" > /dev/null 2>"$state_dir/account.stderr"; then
+            echo "::error::Subscription selection failed; identifiers suppressed."; exit 1
+          fi
+          python "$state_dir/submit_registered_pipeline.py" --state-dir "$state_dir" \
+            --timeout-seconds 1680 --poll-seconds 20

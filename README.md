@@ -121,3 +121,26 @@ admin log. Mocked boundary/idempotency tests also run in required PR CI:
 
 The actual OIDC/approval probe has passed, but does not deploy a model.
 Fabric integration is explicitly deferred in this lab and remains untested.
+
+## GitHub-launched reference-only training
+
+The manual `train-registered-pipeline.yml` workflow uses the existing P-CI
+identity in the train environment. It submits and polls ARM management APIs;
+the GitHub-hosted runner does not upload source/data or access private MLflow,
+artifact or storage endpoints:
+
+```powershell
+gh workflow run train-registered-pipeline.yml --ref main
+```
+
+This lab-specific proof requires the recorded successful baseline job and its
+registered f563 components, environment 2, data 2 and synthetic reference model
+2. The helper validates those references before submission and forces component
+execution rather than cached reuse. It records the actual component source SHA
+separately from the workflow/orchestrator SHA.
+
+This deliberately reuses registered assets; it is not fresh-checkout code
+packaging, Fabric integration, deployed-champion selection or model deployment.
+A Completed pipeline can legitimately produce NOT_REGISTERED. Its private gate
+artifacts are not read by this workflow. Actual execution status is recorded
+separately in the measured-results document; a workflow definition is not proof.
