@@ -16,6 +16,31 @@ import requests
 from scripts.compare_predictions import compare_predictions
 
 
+def regenerate_primary(client: MLClient, credential: ManagedIdentityCredential, endpoint):
+    before = client.online_endpoints.get_keys(endpoint.name)
+    response = requests.post(
+        f"https://management.azure.com{endpoint.id}/regenerateKeys?api-version=2024-10-01",
+        headers={
+            "Authorization": "Bearer " + credential.get_token(
+                "https://management.azure.com/.default"
+            ).token
+        },
+        json={"keyType": "Primary"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    deadline = time.monotonic() + 120
+    while True:
+        after = client.online_endpoints.get_keys(endpoint.name)
+        if after.primary_key != before.primary_key:
+            if after.secondary_key != before.secondary_key:
+                raise ValueError("Primary rotation unexpectedly changed the secondary key.")
+            return before, after
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Accepted key-regeneration request did not change the stored key.")
+        time.sleep(5)
+
+
 def verify_private_uri(uri: str) -> None:
     parsed = urlparse(uri)
     if parsed.scheme != "https" or not parsed.hostname:
@@ -44,8 +69,9 @@ def main() -> None:
     )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    credential = ManagedIdentityCredential(client_id=args.client_id)
     client = MLClient(
-        ManagedIdentityCredential(client_id=args.client_id),
+        credential,
         args.subscription,
         args.resource_group,
         args.workspace,
@@ -106,14 +132,9 @@ def main() -> None:
         keys = client.online_endpoints.get_keys(args.endpoint)
         proof["old_primary_before"] = score(keys.primary_key, "1")
         proof["secondary_before"] = score(keys.secondary_key, "1")
-        client.online_endpoints.begin_regenerate_keys(
-            args.endpoint, key_type="primary"
-        ).result(timeout=600)
-        refreshed = client.online_endpoints.get_keys(args.endpoint)
-        if refreshed.primary_key == keys.primary_key:
-            raise ValueError("Primary key did not rotate.")
-        if refreshed.secondary_key != keys.secondary_key:
-            raise ValueError("Primary rotation unexpectedly changed the secondary key.")
+        original, refreshed = regenerate_primary(client, credential, endpoint)
+        if original.primary_key != keys.primary_key:
+            raise ValueError("Primary key changed concurrently before this test's rotation.")
         proof["secondary_after"] = score(keys.secondary_key, "1")
         proof["new_primary_after"] = score(refreshed.primary_key, "1")
         deadline = time.monotonic() + 120
