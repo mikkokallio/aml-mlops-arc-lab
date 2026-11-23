@@ -30,6 +30,22 @@ proved by the successful Standard_D4s_v5 deployment, not those incomplete probes
 
 ## Measured implementation roadblocks
 
+Additional authorized operations, with exact commands/scopes retained in the
+private action log:
+
+- Managed command job: training-compute SystemAssigned identity had no storage
+  data role and the job failed mounting writable output before user code.
+  Owner granted Storage Blob Data Contributor on the exact workspaceblobstore
+  container, not the account and not the read-only inference identity. Granting
+  requires roleAssignments/write there (Owner/RBAC Administrator); ordinary
+  Contributor is insufficient. A successful retry must still verify resolution.
+- GitHub OIDC bootstrap: two federated credentials on the P-CI UAMI require
+  userAssignedIdentities/federatedIdentityCredentials/write at that identity,
+  for example Managed Identity Contributor. Managed Identity Operator alone
+  does not grant that write. Repository Actions-secret creation separately
+  requires GitHub repository permission, not Azure Owner. Credentials/secrets
+  are configured and read back; workflow execution remains a separate proof.
+
 | Persona / component | Actual finding | Minimum action and scope | Status |
 |---|---|---|---|
 | VM bootstrap | Node object did not exist immediately after k3s service start | Wait for node creation before waiting for Ready | Fixed; node Ready, pinned version verified |

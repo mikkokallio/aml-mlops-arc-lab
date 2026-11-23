@@ -1,0 +1,6 @@
+# Versioned policy: git history plus decision.policy_sha256 identifies the policy.
+min_relative_improvement: 0.01
+quality_max:
+  mae: 2.0
+  mae_items_1_49: 2.0
+  mae_items_50_plus: 2.0

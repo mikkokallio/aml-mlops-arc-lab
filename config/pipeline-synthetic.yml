@@ -1,0 +1,75 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+display_name: M3 synthetic-source pipeline (not Fabric M2)
+experiment_name: campaign-pipeline-synthetic
+description: >-
+  Snapshot an exact versioned synthetic data asset, validate, train, compare the
+  candidate and deployed champion on one campaign-grouped holdout, conditionally register.
+  Fabric/OneLake acceptance remains separate and unproven.
+settings:
+  default_compute: azureml:cpu-training
+  continue_on_step_failure: false
+  force_rerun: true
+inputs:
+  # Override BOTH with the same actual versioned asset before cloud submission.
+  source_data:
+    type: uri_folder
+    path: azureml:campaign-synthetic:1
+  data_version: azureml:campaign-synthetic:1
+  # Caller reads the 100%-traffic deployment; no stages, aliases or historic MAE tags.
+  champion_uri: none
+  champion_deployment: none
+  model_name: campaign-xgboost
+  git_sha: uncommitted
+outputs:
+  decision:
+    type: uri_folder
+  registration:
+    type: uri_folder
+jobs:
+  snapshot:
+    type: command
+    component: components/snapshot.yml
+    inputs:
+      source: ${{parent.inputs.source_data}}
+      data_version: ${{parent.inputs.data_version}}
+    outputs:
+      snapshot:
+        mode: rw_mount
+  validate:
+    type: command
+    component: components/validate.yml
+    inputs:
+      snapshot: ${{parent.jobs.snapshot.outputs.snapshot}}
+    outputs:
+      validated:
+        mode: rw_mount
+  train:
+    type: command
+    component: components/train.yml
+    inputs:
+      data: ${{parent.jobs.validate.outputs.validated}}
+      data_version: ${{parent.inputs.data_version}}
+      git_sha: ${{parent.inputs.git_sha}}
+    outputs:
+      training:
+        mode: rw_mount
+  evaluate:
+    type: command
+    component: components/evaluate.yml
+    inputs:
+      data: ${{parent.jobs.validate.outputs.validated}}
+      training: ${{parent.jobs.train.outputs.training}}
+      champion_uri: ${{parent.inputs.champion_uri}}
+      champion_deployment: ${{parent.inputs.champion_deployment}}
+    outputs:
+      decision: ${{parent.outputs.decision}}
+  register:
+    type: command
+    component: components/register.yml
+    inputs:
+      decision: ${{parent.jobs.evaluate.outputs.decision}}
+      training: ${{parent.jobs.train.outputs.training}}
+      model_name: ${{parent.inputs.model_name}}
+    outputs:
+      registration: ${{parent.outputs.registration}}

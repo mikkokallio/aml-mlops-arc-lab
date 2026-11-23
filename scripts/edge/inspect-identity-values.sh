@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-kubectl get secrets -n azureml -l owner=helm,name=azureml -o json | python3 -c '
+kubectl get secrets -n "${LAB_HELM_NAMESPACE:-azureml}" -l "owner=helm,name=${LAB_HELM_RELEASE:-azureml}" -o json | python3 -c '
 import base64,gzip,json,sys
 items=json.load(sys.stdin)["items"]
 latest=max(items,key=lambda x:int(x["metadata"]["labels"]["version"]))

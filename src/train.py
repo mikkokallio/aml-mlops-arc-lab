@@ -59,6 +59,33 @@ def generate_campaigns(seed: int, campaigns: int = 550) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def split_campaigns(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    campaign_ids = np.sort(data["campaign_id"].unique())
+    if len(campaign_ids) < 2:
+        raise ValueError("At least two campaigns are required.")
+    boundary = campaign_ids[int(len(campaign_ids) * 0.8)]
+    train = data.loc[data["campaign_id"] < boundary]
+    holdout = data.loc[data["campaign_id"] >= boundary]
+    if train.empty or holdout.empty or set(train["campaign_id"]) & set(holdout["campaign_id"]):
+        raise ValueError("Invalid campaign-grouped split.")
+    return train, holdout
+
+
+def regression_metrics(holdout: pd.DataFrame, predicted: np.ndarray) -> dict[str, float]:
+    predicted = np.asarray(predicted)
+    if predicted.shape != (len(holdout),) or not np.isfinite(predicted).all():
+        raise ValueError("Predictions must be one finite value per holdout row.")
+    errors = abs(holdout["target"].to_numpy() - predicted)
+    metrics = {
+        "mae": float(mean_absolute_error(holdout["target"], predicted)),
+        "mae_items_1_49": float(errors[holdout["item_position"].to_numpy() < 50].mean()),
+        "mae_items_50_plus": float(errors[holdout["item_position"].to_numpy() >= 50].mean()),
+    }
+    if not all(np.isfinite(value) for value in metrics.values()):
+        raise ValueError("Both campaign phases must have finite metrics.")
+    return metrics
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("outputs"))
@@ -68,19 +95,17 @@ def main() -> None:
     parser.add_argument("--experiment", default="arc-campaign-probe")
     parser.add_argument("--model-name", default="campaign-xgboost")
     parser.add_argument("--register", action="store_true")
+    parser.add_argument("--data", type=Path, help="Validated snapshot folder containing data.csv.")
+    parser.add_argument("--data-version", default="synthetic-inline-seed-42")
+    parser.add_argument("--git-sha", default=os.environ.get("LAB_GIT_SHA", "uncommitted"))
     args = parser.parse_args()
     if args.register and not args.tracking_uri:
         raise ValueError("Registration requires an explicit workspace tracking URI.")
 
     args.output.mkdir(parents=True, exist_ok=True)
     features = selected_features(args.contract)
-    data = generate_campaigns(args.seed)
-    campaign_ids = np.sort(data["campaign_id"].unique())
-    boundary = campaign_ids[int(len(campaign_ids) * 0.8)]
-    train = data.loc[data["campaign_id"] < boundary]
-    holdout = data.loc[data["campaign_id"] >= boundary]
-    if set(train["campaign_id"]) & set(holdout["campaign_id"]):
-        raise ValueError("Campaign overlap between train and holdout.")
+    data = pd.read_csv(args.data / "data.csv") if args.data else generate_campaigns(args.seed)
+    train, holdout = split_campaigns(data)
     if args.tracking_uri:
         mlflow.set_tracking_uri(args.tracking_uri)
     mlflow.set_experiment(args.experiment)
@@ -97,9 +122,10 @@ def main() -> None:
             {
                 "purpose": "arc-feasibility-probe",
                 "data_producer": "synthetic-lab-generator",
-                "git_sha": os.environ.get("LAB_GIT_SHA", "uncommitted"),
+                "git_sha": args.git_sha,
                 "framework": "xgboost",
                 "split": "campaign-grouped-final-20-percent",
+                "data_asset_version": args.data_version if args.data else f"synthetic-inline-seed-{args.seed}",
             }
         )
         model.fit(train[features], train["target"])
@@ -108,16 +134,8 @@ def main() -> None:
         evaluation["prediction"] = predicted
         evaluation["absolute_error"] = abs(evaluation["target"] - predicted)
         baseline = np.full(len(holdout), train["target"].median())
-        metrics = {
-            "mae": float(mean_absolute_error(holdout["target"], predicted)),
-            "baseline_mae": float(mean_absolute_error(holdout["target"], baseline)),
-            "mae_items_1_49": float(
-                evaluation.loc[evaluation["item_position"] < 50, "absolute_error"].mean()
-            ),
-            "mae_items_50_plus": float(
-                evaluation.loc[evaluation["item_position"] >= 50, "absolute_error"].mean()
-            ),
-        }
+        metrics = regression_metrics(holdout, predicted)
+        metrics["baseline_mae"] = float(mean_absolute_error(holdout["target"], baseline))
         mlflow.log_metrics(metrics)
         mlflow.log_params(
             {
@@ -171,6 +189,9 @@ def main() -> None:
             "metrics": metrics,
             "rows": len(data),
             "features": features,
+            "data_asset_version": args.data_version if args.data else f"synthetic-inline-seed-{args.seed}",
+            "git_sha": args.git_sha,
+            "framework": "xgboost",
             "prediction_tolerance": {"rtol": 0.00001, "atol": 0.00001},
             "reference_predictor": "mlflow.pyfunc.load_model(logged_model_uri)",
         }

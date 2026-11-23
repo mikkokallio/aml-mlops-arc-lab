@@ -1,0 +1,22 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+name: campaign_register_if_eligible
+version: 1
+code: ../..
+environment: azureml:campaign-training:1
+inputs:
+  decision:
+    type: uri_folder
+  training:
+    type: uri_folder
+  model_name:
+    type: string
+outputs:
+  registration:
+    type: uri_folder
+command: >-
+  python -m scripts.pipeline.steps register
+  --decision ${{inputs.decision}}
+  --training ${{inputs.training}}
+  --model-name "${{inputs.model_name}}"
+  --output ${{outputs.registration}}

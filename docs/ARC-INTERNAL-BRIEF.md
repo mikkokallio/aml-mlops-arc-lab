@@ -63,6 +63,23 @@ with the same identity-controller/proxy/gateway crash-loop symptoms.
 
 ## Internal questions
 
+Additional isolation result: Flux installed on the same original cluster,
+returning ARM Succeeded and Helm deployed (chart/app 1.26.6). Its release
+configuration also has UserAssigned in both identity fields, despite
+SystemAssigned chart defaults. The value is therefore not unique to AML.
+This does not identify its producer or demonstrate a Flux reconciliation
+workload. Clean different-minor and different-region AML installs are running.
+
+All-namespace inspection now locates ExtensionConfig in each release namespace,
+not azure-arc. Incoming AML `spec.parameter.IdentityType` is UserAssigned,
+alongside the two diagnostic SystemAssigned settings. Incoming Flux also has
+IdentityType UserAssigned. The value is therefore already present before Helm
+rendering; the originating service/agent and supported correction remain open.
+
+Stable and preview Arc resource API reads expose no OIDC/workload-identity
+profile. We have not treated absence as an explicit disabled value or applied
+a speculative identity change.
+
 1. What producer supplies UserAssigned in this SystemAssigned extension case:
    extension RP, Arc agent/extension manager, or AML-specific configuration?
 2. Is UserAssigned now an expected injected identity type? If so, which AML

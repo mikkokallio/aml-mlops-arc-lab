@@ -1,0 +1,27 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+name: campaign_evaluate
+version: 1
+code: ../..
+environment: azureml:campaign-training:1
+inputs:
+  data:
+    type: uri_folder
+  training:
+    type: uri_folder
+  champion_uri:
+    type: string
+    default: none
+  champion_deployment:
+    type: string
+    default: none
+outputs:
+  decision:
+    type: uri_folder
+command: >-
+  python -m scripts.pipeline.steps evaluate
+  --data ${{inputs.data}}
+  --training ${{inputs.training}}
+  --champion-uri "${{inputs.champion_uri}}"
+  --champion-deployment "${{inputs.champion_deployment}}"
+  --output ${{outputs.decision}}

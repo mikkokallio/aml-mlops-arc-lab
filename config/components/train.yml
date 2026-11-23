@@ -1,0 +1,23 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+name: campaign_train
+version: 1
+code: ../..
+environment: azureml:campaign-training:1
+inputs:
+  data:
+    type: uri_folder
+  data_version:
+    type: string
+  git_sha:
+    type: string
+outputs:
+  training:
+    type: uri_folder
+command: >-
+  python src/train.py
+  --data ${{inputs.data}}
+  --data-version "${{inputs.data_version}}"
+  --git-sha "${{inputs.git_sha}}"
+  --output ${{outputs.training}}
+  --experiment campaign-pipeline-synthetic

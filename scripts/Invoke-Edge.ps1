@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Script,
-    [string]$EvidenceName = 'edge-command'
+    [string]$EvidenceName = 'edge-command',
+    [string]$VMName = 'amlarclab-edge',
+    [string]$ResourceGroup = 'rg-amlarclab-edge'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,7 +13,7 @@ $content = (Get-Content -LiteralPath $Script -Raw).Replace("`r", '')
 $content = "#!/bin/sh`nexec /bin/bash <<'LAB_REMOTE_SCRIPT'`nset -euo pipefail`n" + $content + "`necho LAB_COMMAND_SUCCEEDED`nLAB_REMOTE_SCRIPT`n"
 [System.IO.File]::WriteAllText($temporaryScript, $content, [System.Text.UTF8Encoding]::new($false))
 try {
-    $result = & az vm run-command invoke --resource-group rg-amlarclab-edge --name amlarclab-edge --command-id RunShellScript --scripts "@$temporaryScript" --output json
+    $result = & az vm run-command invoke --resource-group $ResourceGroup --name $VMName --command-id RunShellScript --scripts "@$temporaryScript" --output json
     if ($LASTEXITCODE -ne 0) { throw 'VM Run Command management operation failed.' }
     $result | Set-Content -LiteralPath (Join-Path $directory "$EvidenceName.json")
     $response = ($result -join "`n") | ConvertFrom-Json

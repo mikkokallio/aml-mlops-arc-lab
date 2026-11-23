@@ -1,0 +1,20 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+name: campaign_synthetic_snapshot
+version: 1
+display_name: Synthetic asset snapshot (not Fabric M2)
+code: ../..
+environment: azureml:campaign-training:1
+inputs:
+  source:
+    type: uri_folder
+  data_version:
+    type: string
+outputs:
+  snapshot:
+    type: uri_folder
+command: >-
+  python -m scripts.pipeline.steps snapshot
+  --source ${{inputs.source}}
+  --data-version "${{inputs.data_version}}"
+  --output ${{outputs.snapshot}}

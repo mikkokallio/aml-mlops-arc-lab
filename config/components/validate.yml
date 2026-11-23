@@ -1,0 +1,16 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+type: command
+name: campaign_validate
+version: 1
+code: ../..
+environment: azureml:campaign-training:1
+inputs:
+  snapshot:
+    type: uri_folder
+outputs:
+  validated:
+    type: uri_folder
+command: >-
+  python -m scripts.pipeline.steps validate
+  --source ${{inputs.snapshot}}
+  --output ${{outputs.validated}}

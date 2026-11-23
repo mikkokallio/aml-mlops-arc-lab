@@ -3,7 +3,13 @@ param(
     [Parameter(Mandatory)][string]$Script,
     [Parameter(Mandatory)][string]$EvidenceName,
     [string]$SourceArchive,
-    [ValidatePattern('^[0-9a-f]{40}$')][string]$GitSha
+    [ValidatePattern('^[0-9a-f]{40}$')][string]$GitSha,
+    [string]$VMName = 'amlarclab-edge',
+    [string]$ClusterName = 'arc-amlarclab',
+    [string]$ClusterLocation = 'swedencentral',
+    [string]$K3sVersion = 'v1.35.9+k3s1',
+    [string]$HelmNamespace = 'azureml',
+    [string]$HelmRelease = 'azureml'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,13 +23,19 @@ $ml = (Get-Content (Join-Path $directory 'rg-amlarclab-ml.deployment.json') -Raw
 $subscription = ($edge.vmId.value -split '/')[2]
 $variables = [ordered]@{
     LAB_SUBSCRIPTION = $subscription
+    LAB_VM_NAME = $VMName
+    LAB_CLUSTER_NAME = $ClusterName
+    LAB_CLUSTER_LOCATION = $ClusterLocation
+    LAB_K3S_VERSION = $K3sVersion
+    LAB_HELM_NAMESPACE = $HelmNamespace
+    LAB_HELM_RELEASE = $HelmRelease
     LAB_ONBOARDING_CLIENT_ID = $edge.onboardingClientId.value
     LAB_RGC_CLIENT_ID = ($identities | Where-Object name -eq 'p-rgc').clientId
     LAB_DS_CLIENT_ID = ($identities | Where-Object name -eq 'p-ds').clientId
     LAB_COMPUTE_ID = ($identities | Where-Object name -eq 'compute').id
     LAB_COMPUTE_CLIENT_ID = ($identities | Where-Object name -eq 'compute').clientId
     LAB_WORKSPACE_ID = $ml.workspaceId.value
-    LAB_CLUSTER_ID = "/subscriptions/$subscription/resourceGroups/rg-amlarclab-edge/providers/Microsoft.Kubernetes/connectedClusters/arc-amlarclab"
+    LAB_CLUSTER_ID = "/subscriptions/$subscription/resourceGroups/rg-amlarclab-edge/providers/Microsoft.Kubernetes/connectedClusters/$ClusterName"
     LAB_INSTANCE_TYPES_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\config\instance-types.yml')))
     LAB_TRAIN_CODE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\src\train.py')))
     LAB_FEATURES_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\config\features.yaml')))
@@ -45,4 +57,4 @@ $generated = Join-Path $directory "$EvidenceName.sh"
     $prefix + "`n" + (Get-Content -LiteralPath $Script -Raw),
     [System.Text.UTF8Encoding]::new($false)
 )
-& (Join-Path $PSScriptRoot 'Invoke-Edge.ps1') -Script $generated -EvidenceName $EvidenceName
+& (Join-Path $PSScriptRoot 'Invoke-Edge.ps1') -Script $generated -EvidenceName $EvidenceName -VMName $VMName

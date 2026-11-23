@@ -1,0 +1,96 @@
+name: OIDC authentication and approval probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  train:
+    name: Train control-plane authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: train
+    steps:
+      - name: Authenticate with OIDC and read workspace state
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AML_WORKSPACE_RESOURCE_ID: ${{ secrets.AML_WORKSPACE_RESOURCE_ID }}
+          AZURE_CONFIG_DIR: ${{ github.workspace }}/.azure-oidc
+        run: |
+          set -euo pipefail
+          set +x
+          trap 'az logout >/dev/null 2>&1 || true; rm -rf "$AZURE_CONFIG_DIR"' EXIT
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AML_WORKSPACE_RESOURCE_ID; do
+            if [[ -z "${!name}" ]]; then echo "::error::Missing required repository secret: $name"; exit 1; fi
+          done
+          token="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq -er '.value')"
+          echo "::add-mask::$token"
+          if ! az login --service-principal --username "$AZURE_CLIENT_ID" \
+            --tenant "$AZURE_TENANT_ID" --federated-token "$token" \
+            --output none --only-show-errors >/dev/null 2>&1; then
+            unset token
+            echo "::error::OIDC Azure login failed (identifiers suppressed)."; exit 1
+          fi
+          unset token
+          if ! az account set --subscription "$AZURE_SUBSCRIPTION_ID" >/dev/null 2>&1; then
+            echo "::error::Subscription selection failed (identifiers suppressed)."; exit 1
+          fi
+          if ! state="$(az rest --method get \
+            --url "https://management.azure.com${AML_WORKSPACE_RESOURCE_ID}?api-version=2024-10-01" \
+            --query properties.provisioningState --output tsv --only-show-errors 2>/dev/null)"; then
+            echo "::error::Exact-workspace ARM read failed (identifiers suppressed)."; exit 1
+          fi
+          [[ "$state" =~ ^[A-Za-z]+$ ]] || { echo "::error::Missing or invalid provisioning state."; exit 1; }
+          printf 'Workspace provisioning state: %s\n' "$state"
+
+  prod:
+    name: Prod control-plane authentication (lab self-approval permitted)
+    needs: train
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: prod
+    steps:
+      - name: Authenticate with OIDC and read workspace state
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AML_WORKSPACE_RESOURCE_ID: ${{ secrets.AML_WORKSPACE_RESOURCE_ID }}
+          AZURE_CONFIG_DIR: ${{ github.workspace }}/.azure-oidc
+        run: |
+          set -euo pipefail
+          set +x
+          trap 'az logout >/dev/null 2>&1 || true; rm -rf "$AZURE_CONFIG_DIR"' EXIT
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AML_WORKSPACE_RESOURCE_ID; do
+            if [[ -z "${!name}" ]]; then echo "::error::Missing required repository secret: $name"; exit 1; fi
+          done
+          token="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=api%3A%2F%2FAzureADTokenExchange" | jq -er '.value')"
+          echo "::add-mask::$token"
+          if ! az login --service-principal --username "$AZURE_CLIENT_ID" \
+            --tenant "$AZURE_TENANT_ID" --federated-token "$token" \
+            --output none --only-show-errors >/dev/null 2>&1; then
+            unset token
+            echo "::error::OIDC Azure login failed (identifiers suppressed)."; exit 1
+          fi
+          unset token
+          if ! az account set --subscription "$AZURE_SUBSCRIPTION_ID" >/dev/null 2>&1; then
+            echo "::error::Subscription selection failed (identifiers suppressed)."; exit 1
+          fi
+          if ! state="$(az rest --method get \
+            --url "https://management.azure.com${AML_WORKSPACE_RESOURCE_ID}?api-version=2024-10-01" \
+            --query properties.provisioningState --output tsv --only-show-errors 2>/dev/null)"; then
+            echo "::error::Exact-workspace ARM read failed (identifiers suppressed)."; exit 1
+          fi
+          [[ "$state" =~ ^[A-Za-z]+$ ]] || { echo "::error::Missing or invalid provisioning state."; exit 1; }
+          printf 'Workspace provisioning state: %s\n' "$state"

@@ -61,7 +61,7 @@
 
 AML inference deployment, endpoint scoring/reference comparison,
 package-index-denied deployment,
-release/rollback, Fabric, independent ownership drills and the remaining MLOps
+release/rollback, Fabric ingestion, independent ownership drills and the remaining MLOps
 milestones have **not** passed.
 
 Training succeeded under the restricted P-DS identity inside the VNet, invoked
@@ -76,8 +76,16 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   no public node IP. Its required workspace private endpoint was added after
   the initial create returned that explicit prerequisite error.
 - Immutable-base-image training environment registered. P-DS submitted a real
-  AML command job with committed-source provenance; returned Starting.
-  Execution acceptance is still pending.
+  AML command job with committed-source provenance. It reached Running, then
+  failed before user code while mounting writable workspaceblobstore output.
+  Its separate training-compute identity had no storage data role. Owner granted
+  Storage Blob Data Contributor on that exact container; successful retry is
+  still required. The read-only inference identity was not widened.
+- Five-component synthetic pipeline implementation passes local contracts and
+  SDK YAML validation. Combined training, scoring, CI and pipeline suite:
+  23 passed. Local model registration is not cloud-pipeline acceptance.
+- GitHub OIDC federated credentials and repository secrets are configured.
+  Actual Actions token exchange and production-approval behavior remain untested.
 - Azure-free GitHub CI baseline [passed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197315333).
   A [real leaking-feature PR](https://github.com/mikkokallio/aml-mlops-arc-lab/pull/9)
   [failed](https://github.com/mikkokallio/aml-mlops-arc-lab/actions/runs/45197690905)
@@ -89,3 +97,20 @@ Neither Arc Connected nor a local model/test substitutes for real AML scoring.
   for operator and P-CI with AADSTS500014 (resource service principal disabled).
   Requires Entra-admin investigation; do not misclassify it as missing capacity
   or a Fabric SP allowlist denial.
+
+## Arc workaround experiments
+
+- Original-cluster Flux installation returned ARM Succeeded; Helm release is
+  deployed, chart/app version 1.26.6. Flux also receives UserAssigned in both
+  identity fields, despite SystemAssigned defaults. Thus the injected value is
+  not unique to AML; its producer remains unconfirmed. This does not prove a
+  Flux reconciliation workload or fix AML's legacy selector.
+- Incoming ExtensionConfig objects live in the release namespaces. Both AML
+  and Flux already contain spec.parameter.IdentityType UserAssigned, before
+  Helm rendering. AML additionally retains both diagnostic SystemAssigned
+  settings; they do not override the effective value.
+- Explicit stable and preview Arc API reads expose no OIDC/workload-identity
+  profile. Absence is not a verified enabled=false value; no speculative disable
+  or identity override was applied.
+- Clean different-minor and different-region AML installation experiments are
+  in progress on separate disposable VMs. Their outcomes are not yet acceptance.
